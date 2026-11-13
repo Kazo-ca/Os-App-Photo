@@ -36,4 +36,61 @@
   <data name="Untitled" xml:space="preserve">
     <value>Untitled</value>
   </data>
+  <data name="Dismiss" xml:space="preserve">
+    <value>Dismiss the message</value>
+  </data>
+  <data name="OpenTitle" xml:space="preserve">
+    <value>Open images</value>
+  </data>
+  <data name="PickTitle" xml:space="preserve">
+    <value>Choose a file</value>
+  </data>
+  <data name="ImagesFilter" xml:space="preserve">
+    <value>Images Kazo Photo opens</value>
+  </data>
+  <data name="FilesFilter" xml:space="preserve">
+    <value>Files PhotoCraft reads</value>
+  </data>
+  <data name="AllFiles" xml:space="preserve">
+    <value>All files</value>
+  </data>
+  <data name="ProblemTitle" xml:space="preserve">
+    <value>Kazo Photo</value>
+  </data>
+  <data name="ReadFailed" xml:space="preserve">
+    <value>Could not read {0}: {1}</value>
+  </data>
+  <data name="SaveTitle" xml:space="preserve">
+    <value>Save the image</value>
+  </data>
+  <data name="SaveCopyTitle" xml:space="preserve">
+    <value>Save a copy</value>
+  </data>
+  <data name="FilterFormat" xml:space="preserve">
+    <value>{0} file</value>
+  </data>
+  <data name="OpenFailed" xml:space="preserve">
+    <value>Could not open {0}: {1}</value>
+  </data>
+  <data name="NotConnected" xml:space="preserve">
+    <value>PhotoCraft is not started.</value>
+  </data>
+  <data name="SaveFailed" xml:space="preserve">
+    <value>{0} was not saved: {1}. The image stays modified.</value>
+  </data>
+  <data name="SaveCancelled" xml:space="preserve">
+    <value>{0} was not saved. The image stays modified.</value>
+  </data>
+  <data name="CopySaved" xml:space="preserve">
+    <value>Copy saved: {0}.</value>
+  </data>
+  <data name="CloseTitle" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="CloseUnsaved" xml:space="preserve">
+    <value>Save the changes to {0} before closing? Yes saves, No closes without saving.</value>
+  </data>
+  <data name="CloseUnanswered" xml:space="preserve">
+    <value>PhotoCraft does not answer: {0} cannot be saved. Close without saving?</value>
+  </data>
 </root>

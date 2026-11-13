@@ -114,6 +114,37 @@ public static class PhotoFormats
     /// <summary>Gets the file associations of the manifest.</summary>
     public static IReadOnlyList<FileHandler> FileHandlers => Formats.FileHandlers;
 
+    /// <summary>
+    /// PhotoCraft's preset files: they go to its libraries (brushes, gradients, styles, swatches)
+    /// instead of opening a document, so the window never binds them to a tab.
+    /// </summary>
+    public static IReadOnlyList<string> PresetExtensions { get; } = [".abr", ".grd", ".asl", ".aco", ".act", ".ase"];
+
+    /// <summary>Whether a file is one of PhotoCraft's preset files (<see cref="PresetExtensions"/>).</summary>
+    /// <param name="fileName">The file's name or path.</param>
+    /// <returns><see langword="true"/> for a preset file.</returns>
+    public static bool IsPreset(string fileName) =>
+        PresetExtensions.Contains(CraftDocumentFormats.ExtensionOf(fileName), StringComparer.Ordinal);
+
+    /// <summary>
+    /// Whether PhotoCraft's file picker is File › Open (or the home screen's Open…): the only picker
+    /// that asks for several files of every format at once. The window answers it with the OS Open
+    /// dialog and opens the files itself, bound to them (decision 7), instead of handing their bytes
+    /// to PhotoCraft, which would open them with no file to save back to.
+    /// </summary>
+    /// <param name="request">The picker PhotoCraft opened.</param>
+    /// <returns><see langword="true"/> for File › Open.</returns>
+    /// <remarks>
+    /// The other "several files of every format" pickers (Open as Smart Object, Load Files into
+    /// Stack) need paths, which the browser build never has: on the web they fail whatever the
+    /// window answers, so taking them for File › Open costs nothing.
+    /// </remarks>
+    public static bool IsOpenPicker(PickRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return request.Multiple && request.AcceptsAny([".psd"]) && request.AcceptsAny([".png"]) && request.AcceptsAny([".pcraft"]);
+    }
+
     private static CraftDocumentFormat Default(string extension, string mediaType) =>
         new(extension, mediaType, IsDefault: true, IsCopy: false);
 

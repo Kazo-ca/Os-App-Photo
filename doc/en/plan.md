@@ -242,6 +242,25 @@ at the same time; then 2; then 3.
 - The measure of decision 11.
 - **Done when**: no case loses changes unless the user chose to, no browser dialog or download comes out of the app, and the OS shortcuts work with the cursor in the image.
 
+**Done on 2026-11-13** (pull request `photo/2-window` → `photo/base`, developed against Kazo OS's `craft-exports/base`):
+
+| Point | Result |
+| --- | --- |
+| Tabs (Q2 = A) | `PhotoDocuments` on `DocumentSession`: each tab is bound to its file by the name PhotoCraft saves it under (`session.inspect`, read by `PhotoDocumentList`; the tab's index is its id, PhotoCraft has no other). Window title on the active tab (`*poster.psd — Kazo Photo`), updated on `dirty`, after each save and when the window is activated. |
+| Opening | The file asked at launch; PhotoCraft's File › Open (and the home screen's "Open…") shows the OS dialog, PhotoCraft hears "cancelled" and the window opens each file itself, bound. A file already open brings its tab back (`document.activate`), even after Save As. Decision 7: a file whose name is already taken in the window (tab, binding or a tab's file) opens in a new window (`KazoApps.LaunchAsync`). Presets: sent with no binding. Other pickers (Place, LUT, brushes…) get the files read. |
+| Saving | Decision 6 end to end: rewrite of a bound file, OS dialog for a first save, Save As and a PNG that gained layers (`saveAs`), in the file's folder. A cancelled dialog or a refused write leaves the image modified, with a notice in the window. |
+| Exports | Save a Copy, Export As… (`Exporting`): always a copy, "Save a copy" dialog, the image stays bound to its file. No browser download. |
+| Closing (decision 8) | Guard: "Save the changes to … ?" (Yes saves every modified tab in PhotoCraft's order, No closes, Cancel keeps the window); if PhotoCraft no longer answers and there is unsaved work, the window says so before closing. |
+| Shortcuts (decision 10) | `ReservedKeys.Os` without `Ctrl+N`; `Alt+Q` (the OS's other Close chord; headless Chromium does not deliver the `F4` of `Alt+F4`) pressed in the image closes the window through the guard (Playwright run). Conflicts with PhotoCraft: `Alt+F9` (Window › Actions) and held `Alt+Space` (zoom out) stay the OS's; Actions opens from the menu, zoom out with `Ctrl+-` (View › Zoom Out). To note in the listing (work item 3). |
+| Theme, language, settings | The OS theme (`pro`, `proLight`) followed live, the user's language at `ready`. PhotoCraft's storage (`photocraft.preferences`…) lives in each user's `~/.config/ca.kazo.photo/` (`WebStorageFile`, written 500 ms after the first write, and on close). |
+| Fonts (Q4 = A) | `tools/vendor-fonts.sh` copies craft-fonts' Latin catalog (`tools/craft-fonts.rev`, `c1db6d1a`), less Inter, into `wwwroot/host/fonts/`: 47 OFL-1.1 files, 19 MB, `fonts/manifest.txt` relative to the page. Licences: each family's `OFL.txt` and `THIRD-PARTY-NOTICES.md`. |
+| Large file (decision 11) | A 2400 × 1800 `.psd` with three layers of noise (incompressible): 52.5 MB once written by PhotoCraft. Headless Chromium without a GPU, 4 cores, `--webgl`. **PhotoCraft's read alone** (bytes already in memory): 2.8 s. **Save As** (dialog answered → file written, tab clean): 43.4 s; **Save** in place: 43.5 s. **Opening from the file system** (`xdg-open`, window ready → tab listed): 40.0 s. Nearly all this time is outside PhotoCraft, in moving the file between the window and the OS file system (`KazoFile`): to follow up on the Kazo OS side. Memory (all Chromium processes): 796 MiB for the OS alone, 1,391 MiB with one window, 1,960 MiB with the image open, 2,588 MiB after the save, 2,990 MiB with a 2nd window on the saved file. No refusal and no PhotoCraft stop. Measuring script not committed (a generated file, handed to PhotoCraft then saved by the window). |
+| Tests | 110 xUnit tests; 10 green Playwright runs in Kazo OS (4 from work item 1, 6 new in `open-save.e2e.mjs`: save then reopen with `xdg-open`, Save As and copy, close guard, bound Open and tab brought back, decision 7, `Alt+Q` from the image). |
+
+**Known limits**: PhotoCraft has no command to rename a tab, which keeps after Save As the name it suggested (the window title shows the chosen file). Presets (brushes, gradients…) are in PhotoCraft's IndexedDB, shared by every Kazo user of the browser. In the web build, PhotoCraft's filters refuse a whole image beyond their working-memory budget ("not enough working memory", for example Add Noise on 3000 × 2000).
+
+**Found in Kazo OS, outside this app**: the OS file dialog throws `ObjectDisposedException` (`FileView.DisposeAsync`, `_watchLoopCts` already disposed by `AttachWatchAsync`) when it closes right after entering a folder; Blazor then stops rendering the page. The runs wait one second after a navigation.
+
 ### 3. Store (`photo/3-store`)
 
 - Icon without the ArtCraft logo, listing in fr and en ("based on PhotoCraft by the ArtCraft team", known limits: 128 MiB per file, memory, presets shared between users, fonts), screenshots, README rebuilt from the listing (`store:readme`, "Try it" with `?autolaunch=ca.kazo.photo`), `THIRD-PARTY-NOTICES`.
@@ -267,4 +286,5 @@ what is done here is their model.
 - [x] Benoit's answers to Q1 to Q4: A everywhere (2026-11-13).
 - [x] F1, F2 (fork, 2026-11-13): `window.photocraft` with `?control` (Kazo-ca/photocraft#1) and craft-web-host mode (Kazo-ca/photocraft#2), merged into `kazo/base`. Commit to pin: `16ae9d59ecbaf987a26427b66edff708463b5c1f`. Checked in headless Chromium (`?webgl`) with a test host page: 22 of 22 checks (ready, open, dirty, save with the right `saveAs`, saved, copy downloaded, Blob refused, H9). Wasm clippy of `photocraft-web` keeps one pre-existing error (`wildcard_imports` in `preset_bridge.rs`, upstream code).
 - [x] Work item 1: solution, manifest, build from the fork, iframe page, window (2026-11-13), fork on `kazo/base` with the host mode.
-- [ ] Work items 2 and 3.
+- [x] Work item 2: window, bound opening and saving, tabs, exports as copies, close guard, pickers, shortcuts, theme, language, per-user settings, Latin fonts, measure of a large `.psd` (2026-11-13).
+- [ ] Work item 3.
