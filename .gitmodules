@@ -2,3 +2,8 @@
 	path = external/KazoOs
 	url = https://github.com/Kazo-ca/Os.git
 	shallow = true
+[submodule "external/photocraft"]
+	path = external/photocraft
+	url = https://github.com/Kazo-ca/photocraft.git
+	branch = kazo/v0.23.1
+	shallow = true

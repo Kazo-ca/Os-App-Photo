@@ -1,19 +1,29 @@
 > [English version](README.md)
 
-# Kazo.Os.App
+# Kazo Photo
 
-> **Kazo Photo** (le portage de PhotoCraft dans Kazo OS) se construit dans ce dépôt : voir le
-> [plan](doc/fr/plan.md). Ce README est encore celui du modèle ; il sera refait sur la fiche du Store.
-
-Un dépôt d'app Kazo OS, créé avec le modèle `kazoos-solution`.
+L'éditeur d'images de Kazo OS (calques, masques, réglages, filtres, fichiers `.psd`), construit sur [PhotoCraft](https://github.com/storytold/photocraft) (équipe ArtCraft), compilé depuis notre fork [`Kazo-ca/photocraft`](https://github.com/Kazo-ca/photocraft). En cours : voir le [plan](doc/fr/plan.md). Ce dépôt a été créé avec le modèle `kazoos-solution` ; la fiche du Store remplace cette page au chantier du Store.
 
 | Dossier | Contenu |
 | --- | --- |
-| `src/Kazo.Os.App` | L'app (app fenêtrée ; sa classe `[AppManifest]` génère `manifest.json`) |
-| `src/Kazo.Os.App.Os` | Un hôte qui lance tout Kazo OS avec les apps de base et cette app : le projet à démarrer |
-| `tests/Kazo.Os.App.Tests` | Les tests de l'app |
-| `external/KazoOs` | Le dépôt Kazo OS en sous-module git, sur un tag de release |
+| `src/Kazo.Photo` | L'app (app fenêtrée ; sa classe `[AppManifest]` génère `manifest.json`) |
+| `src/Kazo.Photo.Os` | Un hôte qui lance tout Kazo OS avec les apps de base et cette app : le projet à démarrer |
+| `tests/Kazo.Photo.Tests` | Les tests de l'app (xUnit) |
+| `tests/e2e` | Les parcours de bout en bout dans l'hôte Kazo OS (Playwright) : `npm run test:e2e` après `dotnet build Kazo.Photo.slnx -c Debug` |
+| `external/KazoOs` | Le dépôt Kazo OS en sous-module git ; jusqu'à la version de Kazo OS qui contient l'ADR 0264, sur un commit de sa branche `craft-exports/base` |
+| `external/photocraft` | Les sources de PhotoCraft (notre fork `Kazo-ca/photocraft`) en sous-module git, seulement pour compiler PhotoCraft (`tools/build-photocraft.sh`, workflow Build PhotoCraft) |
+| `src/Kazo.Photo/wwwroot/photocraft` | Le build web de PhotoCraft et sa provenance `photocraft.json`, écrits par `tools/build-photocraft.sh`, jamais modifiés à la main |
 | `store/` | Ce que montre le Kazo OS Store : icône (PNG 256×256), descriptions courtes, descriptions, `store.json` |
+
+## Compiler PhotoCraft
+
+`tools/build-photocraft.sh` compile le commit de `external/photocraft` avec Trunk 0.21.14, Rust
+stable et la cible `wasm32-unknown-unknown`, avec les traductions de `craft-i18n` à la révision
+qu'épingle PhotoCraft (environ 13 minutes à froid sur 4 cœurs), puis remplace
+`src/Kazo.Photo/wwwroot/photocraft/` par le résultat et sa provenance. Le workflow
+**Build PhotoCraft** (onglet Actions) fait la même chose et ouvre une pull request avec le build.
+Pour passer à un autre commit de PhotoCraft : déplacer le sous-module sur un commit du fork, puis
+recompiler ; un test échoue tant que le build et le sous-module ne concordent pas.
 
 ## Premiers pas
 
@@ -27,8 +37,8 @@ git submodule add --depth 1 https://github.com/Kazo-ca/Os.git external/KazoOs
 git -C external/KazoOs checkout v<version de Kazo OS>
 ```
 
-Ouvrez ensuite le `.sln` dans Visual Studio ou Rider et démarrez `Kazo.Os.App.Os`,
-ou lancez `dotnet run --project src/Kazo.Os.App.Os`.
+Ouvrez ensuite `Kazo.Photo.slnx` dans Visual Studio ou Rider et démarrez `Kazo.Photo.Os`,
+ou lancez `dotnet run --project src/Kazo.Photo.Os`.
 
 ## La version de Kazo OS
 
