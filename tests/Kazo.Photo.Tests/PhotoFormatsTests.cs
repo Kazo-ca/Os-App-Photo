@@ -73,6 +73,38 @@ public sealed class PhotoFormatsTests
         Assert.Equal(PhotoFormats.NativeExtension, PhotoFormats.OpenExtensions[0]);
     }
 
+    // PhotoCraft's File › Open filter (apps/photocraft-web/src/web.rs, OPEN_EXTS and SVG_EXTS), as
+    // rfd puts it on the browser's file input.
+    private const string OpenAccept =
+        ".pcraft,.pdn,.ora,.xcf,.xcfgz,.gz,.kra,.krz,.psd,.psb,.psdt,.png,.jpg,.jpeg,.tif,.tiff,.webp,.gif,.bmp,.tga,.ico,"
+        + ".qoi,.exr,.hdr,.pbm,.pgm,.ppm,.pam,.pfm,.dds,.fits,.fit,.fts,.dpx,.cin,.dcm,.dicom,.dc3,.iff,.lbm,.ilbm,.heic,"
+        + ".heif,.hif,.dng,.cr2,.cr3,.nef,.nrw,.arw,.pef,.orf,.rw2,.raf,.abr,.grd,.asl,.svg,.svgz,.aco,.act,.ase,.af,"
+        + ".afdesign,.afphoto,.afpub,.svg,.svgz";
+
+    [Fact]
+    public void File_Open_is_the_picker_of_several_files_of_every_format()
+    {
+        Assert.True(PhotoFormats.IsOpenPicker(new Os.AppSdk.Craft.PickRequest(1, OpenAccept, Multiple: true)));
+    }
+
+    [Theory]
+    [InlineData(".cube,.3dl,.look", true)] // a LUT
+    [InlineData(".atn", true)] // actions
+    [InlineData(".abr", false)] // brushes
+    [InlineData(".wasm", false)] // a plug-in
+    [InlineData("", false)]
+    public void Every_other_picker_gets_the_files_themselves(string accept, bool multiple)
+    {
+        Assert.False(PhotoFormats.IsOpenPicker(new Os.AppSdk.Craft.PickRequest(1, accept, multiple)));
+    }
+
+    [Fact]
+    public void A_single_file_picker_of_every_format_is_not_File_Open()
+    {
+        // The displacement map picker: one file, every format.
+        Assert.False(PhotoFormats.IsOpenPicker(new Os.AppSdk.Craft.PickRequest(1, OpenAccept, Multiple: false)));
+    }
+
     private static FileHandler HandlerOf(string extension) =>
         Assert.Single(PhotoFormats.FileHandlers, handler => handler.Extensions.Contains(extension));
 }
