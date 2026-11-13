@@ -2,6 +2,9 @@
 
 # Kazo.Os.App
 
+> **Kazo Photo** (le portage de PhotoCraft dans Kazo OS) se construit dans ce dépôt : voir le
+> [plan](doc/fr/plan.md). Ce README est encore celui du modèle ; il sera refait sur la fiche du Store.
+
 Un dépôt d'app Kazo OS, créé avec le modèle `kazoos-solution`.
 
 | Dossier | Contenu |

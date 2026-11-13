@@ -2,6 +2,9 @@
 
 # Kazo.Os.App
 
+> **Kazo Photo** (the port of PhotoCraft to Kazo OS) is being built in this repository: see the
+> [plan](doc/en/plan.md). This README is still the template's and is rewritten with the Store listing.
+
 A Kazo OS app repository, made with the `kazoos-solution` template.
 
 | Folder | Content |
