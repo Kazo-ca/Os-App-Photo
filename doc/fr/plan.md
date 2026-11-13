@@ -268,6 +268,6 @@ qui est fait ici leur sert de modèle.
 - [x] Étape 0 : lecture de PhotoCraft 0.23.1, compilation et essai du build web.
 - [x] Plan fr et en.
 - [x] Réponses de Benoit à Q1 à Q4 : A partout (2026-11-13).
-- [x] F1, F2 (fork), fusionnés dans `kazo/base` (2026-11-13).
+- [x] F1, F2 (fork, 2026-11-13) : `window.photocraft` avec `?control` (Kazo-ca/photocraft#1) et mode hôte craft-web-host (Kazo-ca/photocraft#2), fusionnés dans `kazo/base`. Commit à épingler : `16ae9d59ecbaf987a26427b66edff708463b5c1f`. Vérifié dans Chromium headless (`?webgl`) avec une page hôte de test : 22 contrôles sur 22 (ready, open, dirty, save avec le bon `saveAs`, saved, copie téléchargée, Blob refusé, H9). Le clippy wasm de `photocraft-web` garde une erreur antérieure (`wildcard_imports` dans `preset_bridge.rs`, code amont).
 - [x] Chantier 1 : solution, manifeste, compilation depuis le fork, page d'iframe, fenêtre (2026-11-13), fork sur `kazo/base` avec le mode hébergé.
 - [ ] Chantiers 2 et 3.
