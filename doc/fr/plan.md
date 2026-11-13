@@ -232,7 +232,9 @@ deuxième fil, en même temps ; puis 2 ; puis 3.
 | Mémoire | Processus de rendu de Chromium, sans image ouverte : 768 Mio l'OS seul, 886 Mio avec une fenêtre Kazo Photo, 930 Mio avec deux. À refaire avec un `.psd` au chantier 2 (décision 11). |
 | Tests | 69 tests xUnit ; 3 parcours Playwright verts, le 4ᵉ (« la fenêtre montre PhotoCraft une fois prêt ») marqué `todo` jusqu'à F2. |
 
-**Reste pour « terminé »**, après F2 : repasser `external/photocraft` sur `kazo/base`, recompiler, enlever le `todo` du parcours `ready`, vérifier WebGPU sur une vraie carte graphique et installer le `.kazoapp` dans un Kazo OS publié. Tant que PhotoCraft n'envoie pas `photocraft:ready`, la fenêtre reste sur « Démarrage de PhotoCraft… » puis montre l'erreur au bout de 60 s, alors que PhotoCraft tourne derrière.
+**Suite le 2026-11-13, après F2** (PR `photo/1b-host-mode-build` → `photo/base`) : `external/photocraft` passe sur `kazo/base` (`16ae9d59`, mode hébergé de F2), build recompilé (`.wasm` de 39 297 323 octets, `.js` de 193 Ko). PhotoCraft envoie `photocraft:ready` : la fenêtre quitte l'écran de chargement et montre PhotoCraft. Le parcours `ready` n'est plus `todo` : 4 parcours Playwright verts, 69 tests xUnit.
+
+**Reste, non vérifiable ici** : WebGPU sur une vraie carte graphique et l'installation du `.kazoapp` dans un Kazo OS publié (celle-ci attend une version de Kazo OS qui contient `craft-exports/base`, chantier 3).
 
 ### 2. Fenêtre (`photo/2-window`)
 
@@ -266,6 +268,6 @@ qui est fait ici leur sert de modèle.
 - [x] Étape 0 : lecture de PhotoCraft 0.23.1, compilation et essai du build web.
 - [x] Plan fr et en.
 - [x] Réponses de Benoit à Q1 à Q4 : A partout (2026-11-13).
-- [ ] F1, F2 (fork).
-- [x] Chantier 1 : solution, manifeste, compilation depuis le fork, page d'iframe, fenêtre (2026-11-13) ; « terminé » complet après F2.
+- [x] F1, F2 (fork), fusionnés dans `kazo/base` (2026-11-13).
+- [x] Chantier 1 : solution, manifeste, compilation depuis le fork, page d'iframe, fenêtre (2026-11-13), fork sur `kazo/base` avec le mode hébergé.
 - [ ] Chantiers 2 et 3.

@@ -229,7 +229,9 @@ at the same time; then 2; then 3.
 | Memory | Chromium renderer processes, no image open: 768 MiB for the OS alone, 886 MiB with one Kazo Photo window, 930 MiB with two. To measure again with a `.psd` in work item 2 (decision 11). |
 | Tests | 69 xUnit tests; 3 Playwright journeys green, the 4th ("the window shows PhotoCraft once it is ready") marked `todo` until F2. |
 
-**Left for "done"**, after F2: move `external/photocraft` to `kazo/base`, rebuild, remove the `todo` of the `ready` journey, check WebGPU on a real graphics card and install the `.kazoapp` in a published Kazo OS. As long as PhotoCraft does not send `photocraft:ready`, the window stays on "Starting PhotoCraft…" then shows the error after 60 s, while PhotoCraft runs behind it.
+**Follow-up on 2026-11-13, after F2** (PR `photo/1b-host-mode-build` → `photo/base`): `external/photocraft` moves to `kazo/base` (`16ae9d59`, F2's host mode), build recompiled (`.wasm` of 39,297,323 bytes, `.js` of 193 KB). PhotoCraft sends `photocraft:ready`: the window leaves its loading screen and shows PhotoCraft. The `ready` journey is no longer `todo`: 4 Playwright journeys green, 69 xUnit tests.
+
+**Left, not checkable here**: WebGPU on a real graphics card and installing the `.kazoapp` in a published Kazo OS (which waits for a Kazo OS release containing `craft-exports/base`, work item 3).
 
 ### 2. Window (`photo/2-window`)
 
@@ -263,6 +265,6 @@ what is done here is their model.
 - [x] Step 0: reading PhotoCraft 0.23.1, building and trying the web build.
 - [x] Plan in fr and en.
 - [x] Benoit's answers to Q1 to Q4: A everywhere (2026-11-13).
-- [ ] F1, F2 (fork).
-- [x] Work item 1: solution, manifest, build from the fork, iframe page, window (2026-11-13); fully "done" after F2.
+- [x] F1, F2 (fork), merged into `kazo/base` (2026-11-13).
+- [x] Work item 1: solution, manifest, build from the fork, iframe page, window (2026-11-13), fork on `kazo/base` with the host mode.
 - [ ] Work items 2 and 3.
