@@ -1,10 +1,8 @@
 // End-to-end runs of the Kazo Photo window inside the Kazo OS host (doc/en/plan.md, work item 1):
 // `npm run test:e2e` after `dotnet build Kazo.Photo.slnx -c Debug`. Each test opens a fresh page.
 //
-// The window shows PhotoCraft once PhotoCraft says "ready" (photocraft:ready), which only the host
-// mode of our fork sends (fork work item F2).
-// The PhotoCraft build is 0.23.1 as released (kazo/v0.23.1) until then. Until the submodule moves to a build with it, the
-// test that waits for "ready" is marked todo: it runs and reports, without failing the suite.
+// The window shows PhotoCraft once PhotoCraft says "ready" (photocraft:ready), which the host mode
+// of our fork sends (fork work item F2, kazo/base).
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { openApp, runInTerminal, startHost } from './host.mjs';
@@ -75,7 +73,7 @@ test('two Kazo Photo windows run their own PhotoCraft at the same time', { timeo
     await page.close();
 });
 
-test('the window shows PhotoCraft once it is ready', { timeout: 300_000, todo: 'needs the host mode of the fork (F2): photocraft:ready' }, async () => {
+test('the window shows PhotoCraft once it is ready', { timeout: 300_000 }, async () => {
     const { page, errors } = await bootPage(browser, host.baseUrl);
 
     await openApp(page, 'Kazo Photo');
