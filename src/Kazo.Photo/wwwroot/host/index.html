@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<!--
+  The page of the Kazo Photo iframe (doc/en/plan.md, decision 5). PhotoCraft runs here, in page host
+  mode (data-host="page", fork work item F2). craft-proxy.js, served by Kazo OS with the
+  Kazo.Os.AppSdk.Craft module (ADR 0259), reads data-craft-app and data-craft-build, starts
+  PhotoCraft from ../photocraft/photocraft.json and relays its canvas events to the window through
+  the MessagePort the window hands over. The window adds "control" to the page's query: PhotoCraft
+  installs window.photocraft, which the proxy uses, only then (fork work item F1).
+
+  The two elements after the canvas are the ones of PhotoCraft's own page: PhotoCraft removes
+  photocraft_loading once it runs, and reveals photocraft_stopped with the cause when its module
+  stops (out of memory, a crash). In host mode PhotoCraft also tells the window (photocraft:failed),
+  which shows its own error screen with "Retry"; the text here is what stays in the iframe.
+  No inline script or style: photocraft-page.css styles them.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Kazo Photo</title>
+  <link rel="stylesheet" href="../../Kazo.Os.AppSdk.Craft/craft-page.css">
+  <link rel="stylesheet" href="photocraft-page.css">
+  <script type="module" src="../../Kazo.Os.AppSdk.Craft/craft-proxy.js"></script>
+</head>
+<body>
+  <canvas id="photocraft_canvas" data-host="page"
+          data-craft-app="photocraft" data-craft-build="../photocraft/photocraft.json"></canvas>
+  <div id="photocraft_loading" data-craft-loading aria-hidden="true"></div>
+  <div id="photocraft_stopped" hidden role="alert">
+    <p><strong>PhotoCraft stopped.</strong></p>
+    <p>Changes since the last save in this window can't be recovered. Close the window and open Kazo Photo again.</p>
+    <p id="photocraft_stopped_detail"></p>
+  </div>
+</body>
+</html>

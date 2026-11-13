@@ -1,0 +1,32 @@
+/*
+ * PhotoCraft's iframe page (host/index.html), on top of the module's craft-page.css: the message
+ * PhotoCraft reveals when its module stops, over the frozen canvas. Same look as PhotoCraft's own
+ * page; the Kazo window's error screen comes over it when PhotoCraft tells the window.
+ */
+#photocraft_stopped {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    text-align: center;
+    color: #e0e0e0;
+    background: rgba(27, 34, 51, 0.92);
+    font: 14px system-ui, sans-serif;
+}
+
+#photocraft_stopped[hidden] {
+    display: none;
+}
+
+#photocraft_stopped p {
+    margin: 0 0 8px;
+    max-width: 460px;
+    line-height: 1.5;
+}
+
+#photocraft_stopped_detail {
+    color: #b8c3d6;
+}

@@ -214,6 +214,23 @@ at the same time; then 2; then 3.
 - Until F2 is merged, compile `kazo/v0.23.1` to break in the tooling; the journey that waits for `ready` comes with F2.
 - **Done when**: the app starts in WebGPU and in WebGL 2, two windows run together, the `.kazoapp` package installs in a published Kazo OS; package size and memory per window recorded here.
 
+**Done on 2026-11-13** (PR `photo/1-solution` → `photo/base`), with the fork still on `kazo/v0.23.1` (F2 not merged):
+
+| Point | Result |
+| --- | --- |
+| Solution | `Kazo.Photo.slnx`: `Kazo.Photo` (app), `Kazo.Photo.Os` (host), `Kazo.Photo.Tests` (xUnit), `tests/e2e` (Playwright). |
+| Manifest | `ca.kazo.photo` 0.1.0, `pub.kazo`, `graphics`, several windows, 1280 × 820, minimum 762 × 520 (760 × 480 of content plus the frame), `canChangeScreen: false`, Kazo Fig's capabilities, minimum version 3.3.3. |
+| Associations (Q3 = A) | `open` and `edit` for layered documents, RAW files, the images Kazo Paint does not read and the presets (`.abr .grd .asl .aco .act .ase`); `open` alone for `.png .jpg .jpeg .bmp .gif .webp .svg`. `.svgz` and `.svg` have two media types, so no type mixes both cases (`Documents/PhotoFormats.cs`). |
+| Submodules | `external/KazoOs` on `craft-exports/base` (`c91effd`, CI: `KAZOOS_BRANCH`, `KAZOOS_USE_SOURCE`), `external/photocraft` on `kazo/v0.23.1` (`45066c48`). |
+| Build tooling | `tools/build-photocraft.sh`: Trunk 0.21.14 directly (not `packaging/web/package.sh`, which cuts the `.wasm` into parts), `craft-i18n` required at the revision of `craft-i18n.rev`. 16 minutes from scratch here (4 cores, Rust 1.97.0). Workflow `build-photocraft.yml` on the model of Kazo Pdf. |
+| Build | `.wasm` of 39,250,977 bytes (37.4 MiB), `.js` of 182 KB, plus the licences (MIT, Apache, `NOTICE`, `ATTRIBUTION.md`, OFL of Inter and JetBrains Mono). `.kazoapp` package (`-t:KazoOsPack`): **16.2 MB**. |
+| Window | `CraftFrame` and `FrameStartup`: loading screen, error with "Retry" after 60 s, theme (`pro`, `proLight`) and language (`prefs.set interface.language`) on `ready`, `ReservedKeys.Os` without `Ctrl+N` (decision 10). Iframe page with `#photocraft_loading` and `#photocraft_stopped` (`host/photocraft-page.css`). |
+| Browser | In Kazo OS (Chromium with no graphics card), PhotoCraft starts in each window's iframe, two windows together, and draws its home screen on WebGL 2 (`--webgl`). On software WebGPU (SwiftShader), PhotoCraft loses its device right after starting ("A valid external Instance reference no longer exists"): a limit of that browser, **to check on a real graphics card**. |
+| Memory | Chromium renderer processes, no image open: 768 MiB for the OS alone, 886 MiB with one Kazo Photo window, 930 MiB with two. To measure again with a `.psd` in work item 2 (decision 11). |
+| Tests | 69 xUnit tests; 3 Playwright journeys green, the 4th ("the window shows PhotoCraft once it is ready") marked `todo` until F2. |
+
+**Left for "done"**, after F2: move `external/photocraft` to `kazo/base`, rebuild, remove the `todo` of the `ready` journey, check WebGPU on a real graphics card and install the `.kazoapp` in a published Kazo OS. As long as PhotoCraft does not send `photocraft:ready`, the window stays on "Starting PhotoCraft…" then shows the error after 60 s, while PhotoCraft runs behind it.
+
 ### 2. Window (`photo/2-window`)
 
 - Opening: the file asked at launch, `OpenAsync`, decision 7. Presets (`.abr .grd .asl .aco .act .ase`): sent to PhotoCraft with no binding.
@@ -247,4 +264,5 @@ what is done here is their model.
 - [x] Plan in fr and en.
 - [x] Benoit's answers to Q1 to Q4: A everywhere (2026-11-13).
 - [ ] F1, F2 (fork).
-- [ ] Work items 1 to 3.
+- [x] Work item 1: solution, manifest, build from the fork, iframe page, window (2026-11-13); fully "done" after F2.
+- [ ] Work items 2 and 3.
