@@ -131,7 +131,7 @@ build Trunk, et un parcours Playwright sur une page d'essai qui joue l'hôte (`o
 
 ## Questions posées à Benoit
 
-Posées dans le fil le 2026-11-13. Une réponse « ok » ou vide prend la recommandation.
+Posées dans le fil le 2026-11-13. **Benoit a répondu A aux quatre questions le 2026-11-13** : mode hébergé dans notre fork et proposé en amont (Q1), onglets de PhotoCraft et nouvelle fenêtre au double-clic (Q2), app par défaut pour ce que rien d'autre n'ouvre (Q3), polices latines de `craft-fonts` servies à la demande (Q4).
 
 **Q1. Où vit le mode hébergé de PhotoCraft ?**
 
@@ -248,6 +248,6 @@ qui est fait ici leur sert de modèle.
 
 - [x] Étape 0 : lecture de PhotoCraft 0.23.1, compilation et essai du build web.
 - [x] Plan fr et en.
-- [ ] Réponses de Benoit à Q1 à Q4.
+- [x] Réponses de Benoit à Q1 à Q4 : A partout (2026-11-13).
 - [ ] F1, F2 (fork).
 - [ ] Chantiers 1 à 3.

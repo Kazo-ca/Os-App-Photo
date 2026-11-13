@@ -129,7 +129,7 @@ Playwright journey on a test page that plays the host (`open`, `save`, `saved`, 
 
 ## Questions asked to Benoit
 
-Asked in the thread on 2026-11-13. An "ok" or an empty answer takes the recommendation.
+Asked in the thread on 2026-11-13. **Benoit answered A to the four questions on 2026-11-13**: host mode in our fork and proposed upstream (Q1), PhotoCraft's tabs and a new window on double-click (Q2), default app for what nothing else opens (Q3), the Latin fonts of `craft-fonts` served on demand (Q4).
 
 **Q1. Where does PhotoCraft's host mode live?**
 
@@ -245,6 +245,6 @@ what is done here is their model.
 
 - [x] Step 0: reading PhotoCraft 0.23.1, building and trying the web build.
 - [x] Plan in fr and en.
-- [ ] Benoit's answers to Q1 to Q4.
+- [x] Benoit's answers to Q1 to Q4: A everywhere (2026-11-13).
 - [ ] F1, F2 (fork).
 - [ ] Work items 1 to 3.
