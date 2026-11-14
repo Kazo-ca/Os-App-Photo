@@ -188,9 +188,10 @@ async function installFromStore(page) {
     await openApp(page, 'Kazo OS Store');
     const store = page.locator('.store-root').first();
     await store.locator('input.store-search').fill(APP);
-    const card = store.locator('button.store-card', { hasText: APP }).first();
+    // Kazo OS 3.3.4 Store: a card (not a button) whose title opens the app's page.
+    const card = store.locator('.store-card', { hasText: APP }).first();
     await card.waitFor({ timeout: STEP_MS });
-    await card.click();
+    await card.getByText(APP, { exact: true }).first().click();
     await store.getByRole('button', { name: 'Install for me', exact: true }).click({ timeout: STEP_MS });
     // A first install from the catalog may ask an administrator.
     const prompt = page.locator('.credential-prompt-dialog, .aaa-window').first();
