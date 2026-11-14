@@ -1,0 +1,24 @@
+{
+  "version": "0.23.1",
+  "source": {
+    "kind": "source-build",
+    "repository": "https://github.com/Kazo-ca/photocraft.git",
+    "commit": "16ae9d59ecbaf987a26427b66edff708463b5c1f",
+    "craftI18n": "e02939ef009218e81c44e8ec001fbb7603461de4",
+    "rustc": "rustc 1.97.0 (2d8144b78 2026-07-07)",
+    "trunk": "0.21.14"
+  },
+  "glue": "photocraft-web-432b94fbde16538d.js",
+  "wasm": "photocraft-web-432b94fbde16538d_bg.wasm",
+  "files": [
+    { "path": "ATTRIBUTION.md", "size": 29972, "sha256": "ef42af719a7282ff5b505039eeaae9ae5aeff45615b8b94131200656ba297c0a" },
+    { "path": "LICENSE-APACHE", "size": 10174, "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594" },
+    { "path": "LICENSE-MIT", "size": 1102, "sha256": "1a8f66d8a86b146f5336fa0d4b1186576c8aa98e60823080c85c7811cfd810af" },
+    { "path": "NOTICE", "size": 10048, "sha256": "9225763160f7908a97bb4e67e38494e4932cf8bafec18fac6345506825d713ee" },
+    { "path": "OFL-Inter.txt", "size": 4380, "sha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a" },
+    { "path": "OFL-JetBrainsMono.txt", "size": 4399, "sha256": "a76abf002c49097d146e86740a3105a5d00450b1592e820a1109a8c5680cd697" },
+    { "path": "photocraft-web-432b94fbde16538d.js", "size": 192530, "sha256": "ca411fcdf6468d237744e1abc210bc5e3c3ce586beeea21dbba3a9fb3359fdcd" },
+    { "path": "photocraft-web-432b94fbde16538d_bg.wasm", "size": 39297323, "sha256": "38942aede05a1264521b9c764ff1e068b5cff89265c7ae9403e7b59ec6bb5dde" },
+    { "path": "snippets/eframe-d31a8450ea12dfc1/inline0.js", "size": 280, "sha256": "22a98f9d0c5a0532d291bdc9a3050439420b3d11143b4568fcfd3c66fff36995" }
+  ]
+}

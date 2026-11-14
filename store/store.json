@@ -1,7 +1,7 @@
 {
-  "repository": "https://github.com/example/Os-App-MyApp",
-  "project": "src/Kazo.Os.App/Kazo.Os.App.csproj",
-  "category": "productivity",
-  "tags": ["sample"],
+  "repository": "https://github.com/Kazo-ca/Os-App-Photo",
+  "project": "src/Kazo.Photo/Kazo.Photo.csproj",
+  "category": "graphics",
+  "tags": ["image-editor", "photo", "layers", "psd", "graphics"],
   "license": "MIT"
 }

@@ -1,0 +1,33 @@
+@inherits WindowAppBase
+
+<div class="photo-window" role="application" aria-label="@L["EditorLabel"]">
+    @* craft-host.js (Kazo.Os.AppSdk.Craft) puts PhotoCraft's iframe in this element; it stays hidden until PhotoCraft is ready. *@
+    <div class="photo-frame @(_startup.State == FrameState.Running ? "running" : string.Empty)" @ref="_frameHost"></div>
+
+    @if (_startup.State == FrameState.Loading)
+    {
+        <div class="photo-screen" role="status">
+            <div class="photo-spinner" aria-hidden="true"></div>
+            <p class="photo-screen-title">@L["Loading"]</p>
+            <p class="photo-screen-hint">@L["LoadingHint"]</p>
+        </div>
+    }
+    else if (_startup.State == FrameState.Failed)
+    {
+        <div class="photo-screen failed" role="alert">
+            <p class="photo-screen-title">@L["FailedTitle"]</p>
+            <p class="photo-screen-detail">@FailureText</p>
+            <p class="photo-screen-hint">@L["FailedHint"]</p>
+            <button type="button" class="photo-retry" @onclick="RetryAsync">@L["Retry"]</button>
+        </div>
+    }
+
+    @if (_notice is not null)
+    {
+        @* Over PhotoCraft, at the bottom right: a failed write, a cancelled save, a copy written. *@
+        <div class="photo-notice @(_noticeIsError ? "error" : string.Empty)" role="@(_noticeIsError ? "alert" : "status")">
+            <span class="photo-notice-text">@_notice</span>
+            <button type="button" class="photo-notice-close" aria-label="@L["Dismiss"]" @onclick="DismissNotice">×</button>
+        </div>
+    }
+</div>

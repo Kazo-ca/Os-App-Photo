@@ -1,0 +1,311 @@
+> [Version française](../fr/plan.md)
+
+# Plan: the Kazo Photo app for Kazo OS
+
+Step 0 of the Kazo OS [Craft app port guide](https://github.com/Kazo-ca/Os/blob/main/doc/en/wasm/dev/craft-app-port-guide.md),
+written on 2026-11-13 (`TODO` issue [#1](https://github.com/Kazo-ca/Os-App-Photo/issues/1)).
+This document sets the goal, what reading PhotoCraft showed, the decisions, the questions asked to
+Benoit and the work items. Each work item is written so that it can be handed as is to an
+implementation thread. The closest references are Kazo Fig
+([plan](https://github.com/Kazo-ca/Os-App-Fig/blob/main/doc/en/plan.md), several documents in
+tabs) and Kazo Pdf ([plan](https://github.com/Kazo-ca/Os-App-PDF/blob/pdf/base/doc/en/plan.md),
+exports received as copies).
+
+## Goal
+
+Kazo Photo is **the image editor of Kazo OS**: layers, masks, adjustments, filters, type, `.psd`
+files. It wraps the web build of [PhotoCraft](https://github.com/storytold/photocraft) (ArtCraft
+team, `MIT OR Apache-2.0`, Rust and egui, alpha) and connects it to the files, dialogs and
+associations of Kazo OS. Kazo Paint, the base app, stays the simple tool; Kazo Photo is the full
+one.
+
+**What sets this port apart**: PhotoCraft has **neither host mode (`craft-web-host`) nor a command
+API (`craft-web-api`)**. WordCraft, GridCraft, PdfCraft and FigCraft had them; here they have to
+be written, in our fork [`Kazo-ca/photocraft`](https://github.com/Kazo-ca/photocraft), before the
+Kazo window can open or save anything. Kazo Photo is therefore a **modified** build compiled from
+the fork from its first version; there is no "official zip" stage.
+
+The common Kazo code (iframe, proxy, file picker, shortcuts, settings, `DocumentSession`, exports)
+comes from the `Kazo.Os.AppSdk.Craft` module of Kazo OS
+([ADR 0259](https://github.com/Kazo-ca/Os/blob/main/doc/en/wasm/dev/adr/0259-shared-craft-app-host-module.md),
+[ADR 0264](https://github.com/Kazo-ca/Os/blob/craft-exports/base/doc/en/wasm/dev/adr/0264-craft-app-exports-reach-the-window.md)).
+
+## Reading PhotoCraft (step 0, 2026-11-13)
+
+Read on `main` of the fork (commit `e052eab`, 2026-11-13, version 0.23.1) and compiled from that
+commit. The upstream tag `v0.23.1` is commit `45066c48` of the `release` branch, which the fork
+does not have yet.
+
+| Point | Finding |
+| --- | --- |
+| Web build | `apps/photocraft-web` (Trunk 0.21.14, `public_url = "./"`, Cargo profile `wasm-release`, feature `heif`), eframe on **wgpu**: WebGPU, WebGL 2 fallback (`?webgl`), `?cpu` for the canvas without GPU. Rust 1.95 at least. `craft-i18n` languages embedded in the `.wasm` (revision `e02939e`, file `craft-i18n.rev`). |
+| Host mode | **Missing.** No dependency on `craft-web-host`; `apps/photocraft-web/src/web.rs` only knows the browser: Open = browser picker (`rfd`), Save = download. |
+| Command API | **Missing** in the web build (`window.photocraft` does not exist), but everything it needs is there: `PhotocraftApp::with_control` takes a queue of `ControlRequest`, the one the desktop TCP server feeds (`docs/control-protocol.md`). Only the `craft-web-api` wiring is missing, like `apps/gridcraft-web/src/api.rs` (150 lines). |
+| Canvas | `photocraft_canvas`, hard-coded: one instance per HTML document, so one iframe per window. The page also holds `#photocraft_loading` and `#photocraft_stopped` (the message shown when the module stops, for example out of memory). |
+| Official zip | `photocraft-web-<version>.zip` (`packaging/web/package.sh`): the `.wasm` is gzipped and cut into 20 MiB parts, started by `photocraft-web-boot`. Of no use here: no host mode, and the Kazo module expects one `.js` and one `.wasm`. We take Trunk's direct output (`dist/web`). |
+| Size | `.wasm` of **37.6 MiB** after `wasm-opt`, `.js` glue of 179 KiB (measured, see "Trial"). Under the Kazo OS limits (128 MiB per file; package of 64 MiB compressed, 128 MiB extracted) and under GitHub's 50 MB warning. |
+| Saving | Everything goes through `Services::write(path, bytes)`: the document (Save, Save As), but also copies and exports (Save a Copy, Export As, Quick Export as PNG, Save for Web, Layers to Files) and preset files (swatches, actions, shortcuts, contours, colour tables…), about fifteen call sites. The function does not know whether it writes the document or a copy; the app does (`write_document(…, copy)`). |
+| Name on save | A file opened in the browser has no path (`path = None`). Save then always proposes `name.psd`, even for a one-layer JPEG. With a path (`menus/invoke.rs`, `file.save`): a layered file that holds the whole document (`.pcraft`, `.psd`, `.psb`, `.tif`) is rewritten in place; for a flat image, Save goes back through the name request and proposes its own file (`.png` for a JPEG that became transparent); when the format can no longer hold the document, it proposes `.psd` and the old format becomes a copy, like Photoshop. |
+| "Modified" | On the web, `write_unconfirmed = true`: after a download the document **stays modified** (the browser confirms nothing) and the leave-page warning stays armed. |
+| Documents | Several documents in **tabs** in one page (File › New, Open with several files, dragging a layer from one tab to another). Command `session.inspect`: `{ active, documents[{ index, name, path, width, height, dirty, revision }] }`. No stable identifier in that list (only the tab's position). `ui.inspect` does not list the documents. |
+| Two tabs, one file | `detach_others_from_file`: when a tab saves under the path of another tab, the other one loses its file and becomes "modified". In the browser paths are plain names: two files of the same name from two folders would be taken for the same file. |
+| Commands | `engine.execute { command, params }` (no dialog), `ui.menu.invoke` (like a menu click), `engine.commands`, `ui.inspect`, `ui.set`, `ui.screenshot`, `ui.dialog.*`. File: `file.new`, `file.open`, `file.save`, `file.saveAs`, `file.saveACopy`, `file.close`, `file.closeAll`, `file.revert`, `file.export.*`, `file.print`. Documents: `session.inspect`, `document.inspect`, `document.activate`. `app.open` and `app.save` need file access the web does not have. |
+| Theme | `ui.set { theme }`: `pro` (dark, default), `proMedium`, `proLightGray`, `proLight`, `studio`, `studioLight`, `classic`, `adwaita`, `adwaitaDark`, `solarizedDark`, `breezeLight`, `breezeDark`, `softDark`, `softLight`. |
+| Language | Preference `interface.language` (`prefs.set`), `auto` by default (the browser's languages). 35 languages have a PhotoCraft catalog: `ar az bn bs cs da de el es fi fr he hi hu id it ja ka ko nb nl pl pt-br ro ru sr-latn sv ta th tr uk ur vi zh-hans zh-hant`. |
+| Browser picker (`rfd`) | About ten uses: open (one or several files), place embedded, files of a stack, LUTs and presets (`.abr` brushes, `.grd` gradients, `.asl` styles, swatches), actions, a smart object's SVG. All go through the same `input type=file`: the module's picker replaces them. **Folder** requests already answer "nothing" on the web. |
+| Formats opened | `pcraft psd psb psdt xcf xcfgz ora kra krz pdn af afphoto afdesign afpub` (layered documents), `png jpg jpeg gif bmp webp tif tiff tga ico qoi exr hdr pbm pgm ppm pam pfm dds fits fit fts dpx cin dcm dicom dc3 iff lbm ilbm heic heif hif svg svgz` (images), `dng cr2 cr3 nef nrw arw pef orf rw2 raf` (RAW), and the presets `abr grd asl aco act ase`, which go to the libraries instead of opening a document. |
+| Formats saved | Document: `.pcraft` (native), `.psd`, `.psb`, `.tif`; `.ora` when it holds the whole document; a flat format (`png jpg webp gif bmp tga qoi exr hdr…`) only for a flat document. |
+| Settings | `localStorage`, key `photocraft.preferences`: the module keeps them per Kazo user. **Presets** (brushes…) are in IndexedDB: shared by every Kazo user of the same browser (the same limit as Kazo Word's added fonts). |
+| Fonts | The web build only has **Inter and JetBrains Mono**. More fonts can be "served": a `fonts/manifest.txt` file **relative to the page** (the `craft-fonts` format), each family downloaded on first use. All of `craft-fonts` weighs 82 MB (55 MB of it CJK fonts). Question Q4. |
+| Memory | wasm32: 4 GiB at most per page, so per window. PhotoCraft checks the room before Place, Image Size and every save, warns within 512 MiB of the ceiling, and shows "PhotoCraft stopped" if the module stops. |
+| Leaving the page | `beforeunload` warning while work is unsaved; the Kazo window's close guard runs first. |
+| Screen eyedropper, clipboard, pen | Browser APIs (`EyeDropper`, eframe's clipboard, Pointer Events): they work in the iframe, which the module opens with `clipboard-read` and `clipboard-write`. |
+| Window size | Desktop: 1440 × 900, minimum 760 × 480. |
+| Brand | The ArtCraft name and logos are trademarks (`docs/brand/LICENSE-brand.txt`): a modified build must remove them and must not present itself as an ArtCraft product; "based on PhotoCraft by the ArtCraft team" in plain text is allowed. The "ArtCraft" link of the About window carries the name; the home screen carries three links to ArtCraft and an icon to check (see "Trial"). |
+| Upstream repository rules | `AGENTS.md`: Rust only, no `unwrap`/`panic` outside tests, everything is a command, never break wasm (`cargo xtask wasm`), no CI change in a feature pull request, no agent attribution in a pull request, an issue before a pull request. |
+
+### Trial (2026-11-13)
+
+Run on the fork (`main`, e052eab, v0.23.1), in this session's container (4 cores, Linux), with no change to the code.
+
+| Point | Result |
+| --- | --- |
+| Tools | Rust stable 1.100.0, target `wasm32-unknown-unknown`, Trunk 0.21.14, `craft-i18n` at the pinned revision (`craft-i18n.rev`, `CRAFT_I18N_REQUIRED=1`). `craft-fonts` was not provided. |
+| Command | `trunk build --release` in `apps/photocraft-web` (profile `wasm-release`, feature `heif`). |
+| Duration | 13 minutes from cold: 9 min of `cargo`, then 3 min 30 of `wasm-opt -Oz --converge`. |
+| Output | `dist/web`: `index.html`, a `.js` of 179 KiB, a `.wasm` of 37.6 MiB (39.4 MB; 51.8 MB before `wasm-opt`; 16.0 MB gzipped), a `snippets/` folder. |
+| Start | Chromium with no graphics card (WebGL2 through SwiftShader, `?webgl`): the app starts in under a second from a local server and shows its home screen. It falls back to CPU rendering by itself ("CPU Rendering" in the status bar). |
+| Open | The "Open…" button opens the browser file picker. A 640 × 400 PNG opens in a tab. |
+| Save | Ctrl+S on that PNG: `sample.psd` is downloaded, with no prompt, and the tab takes that name. This is what H2 fixes: the opened file has no path. |
+| Page API | `typeof window.photocraft` is `undefined`. |
+| Storage | One `photocraft.preferences` key in `localStorage`. |
+| Console | One 404 request (`fonts/manifest.txt`, served fonts absent), harmless. |
+
+Two things seen on screen: the home screen carries ArtCraft's "Website", "Discord" and "GitHub" links, the PhotoCraft name and an icon at the top left (H9, in the fork); the 1280 × 820 window is well filled, which confirms a large starting size.
+
+Screenshots: `photo/trials/` in the project files (outside the repository).
+
+## What has to be added to PhotoCraft (fork)
+
+The contract is `craft-web-host`'s (`storytold/craft-libs`, version "1"), the same as the other
+Craft apps, with the `photocraft:` prefix. The code lives in `apps/photocraft-web`, on the model of
+`apps/gridcraft-web/src/{api,host,hostmode}.rs`; two points also need a small opening in
+`crates/ui-egui` (marked ★), because the web shell cannot see what it needs today.
+
+| # | Behaviour in host mode (`data-host="page"` or `?host=parent`) | Why |
+| --- | --- | --- |
+| H1 | `photocraft:ready { version: "1", appVersion, file: false }` once the app listens; `photocraft:failed { error }` if it cannot start, **and when the module stops** (the handler that already shows "PhotoCraft stopped"). | The Kazo window knows when to send the file and when to show an error. |
+| H2 | `photocraft:open { name, bytes }` opens the file like File › Open, in a new tab, refused above a limit before it is copied. ★ The document opened by the host **keeps its name as its path** (`path = Some(name)`). | With a path, Save rewrites the same file when its format allows it, instead of always proposing `.psd`. |
+| H3 | ★ A save **of the document** (`copy == false`) goes out as `photocraft:save { name, bytes, saveAs, id }`. `saveAs` is false when the document is written under its own path (rewritten in place, or Save of a flat image when the proposed name is its own file), true otherwise (Save As, first save, a format that can no longer hold the document). | The host knows whether it rewrites the bound file or must ask where to save. |
+| H4 | The document is marked saved only when `photocraft:saved { id }` arrives; with no answer it stays modified. | Fixes for PhotoCraft the "the app says it is clean before the write" pitfall (craft-libs #611). |
+| H5 | **Copies, exports and preset files** keep the download (`<a download>`). | The Kazo module already intercepts them and hands them to the window as copies (ADR 0264); nothing to invent. |
+| H6 | `photocraft:dirty { dirty }` when one of the open documents has changes, or none has any more. | Window title. |
+| H7 | `window.photocraft` (`craft-web-api`: `request`, `execute`, `commands`, `docInspect`, `uiInspect`, `screenshot`) on the app's control queue, installed with `?control` like PdfCraft and FigCraft. A call the page gave up on is not run (`Dispatch::give_up`). | Theme, language, document list, close guard. |
+| H8 | Outside host mode nothing changes (downloads, browser picker). | The patch stays proposable upstream. |
+| H9 | The "ArtCraft" link of the About window becomes the text the brand licence allows. In host mode the home screen does not show the "Website", "Discord" and "GitHub" links; the icon at the top left is checked against `docs/brand/` and removed if it is a mark. | Modified build. |
+
+Tests asked in the fork: unit tests of the pure rules (default name, `saveAs`, size limit),
+`cargo clippy -D warnings`, `cargo xtask layers`, `cargo xtask wasm`, a Trunk build, and a
+Playwright journey on a test page that plays the host (`open`, `save`, `saved`, `dirty`, `failed`,
+`window.photocraft.request`).
+
+## Decisions
+
+| # | Subject | Decision |
+| --- | --- | --- |
+| 1 | Name and identity | "**Kazo Photo**". Id `ca.kazo.photo`, publisher `pub.kazo`, assembly `Kazo.Photo`, Kazo Fig's category, several windows, window of 1280 × 820, minimum content 760 × 480. |
+| 2 | Common code | The `Kazo.Os.AppSdk.Craft` module. Minimum version: **the Kazo OS version that contains `craft-exports/base`** (ADR 0264), because H5 depends on it; not published yet, Benoit decides when. Until then the OS submodule follows `craft-exports/base`, like Kazo Pdf. |
+| 3 | Changing screen | `canChangeScreen: false` in the manifest from work item 1 (issue [#2](https://github.com/Kazo-ca/Os-App-Photo/issues/2), ADR 0263). |
+| 4 | Where the build comes from | Always compiled from the fork: branch `kazo/v0.23.1` (= upstream tag `v0.23.1`, commit `45066c48`), integration branch `kazo/base` created from it, which receives the fork's work items. Submodule `external/photocraft` on `kazo/base`. Trunk's output (`dist/web`) copied into `wwwroot/photocraft/` with `photocraft.json` (version, commit, names and SHA-256), in the repository: the Store compiles no Rust. |
+| 5 | Iframe page | `wwwroot/host/index.html`: canvas `photocraft_canvas` with `data-host="page"`, `data-craft-app="photocraft"`, `data-craft-build="../photocraft/photocraft.json"`, plus the `#photocraft_loading` and `#photocraft_stopped` elements of the upstream page. Parameter `control` for `window.photocraft`. |
+| 6 | Saving | `Saving`: the module's rule (`DocumentSession.Decide(name, saveAs)`); the window returns `true` only once the file is written, which triggers `saved` (H4). `Exporting`: always a copy (`DecideCopy`). |
+| 7 | Two files of the same name | A name is bound once per window. Opening a file whose name is already bound in this window opens it in a **new window**: PhotoCraft would otherwise take both tabs for the same file. |
+| 8 | Close guard | Read from `session.inspect` (`documents[{ index, name, path, dirty }]`); the window activates each modified document (`document.activate`), runs `file.save` and waits for its own writes to finish. |
+| 9 | Theme and language | `ui.set { theme }`: `pro` for the OS's dark theme, `proLight` for the light one, on every change. Language: `prefs.set` of `interface.language` at start (`CraftLanguage.Pick` over the 35 codes). |
+| 10 | Shortcuts | `ReservedKeys.Os` **without** `Ctrl+N`: in a tabbed image editor, `Ctrl+N` is PhotoCraft's "New document". Conflicts between the OS chords (`Alt+F3`…`F11`, `Alt+Space`) and PhotoCraft's are listed in work item 2 and noted in the listing. |
+| 11 | Large files | The Kazo OS limit (128 MiB per file, ADR 0245) applies; a larger file is refused with a message. Work item 2 measures opening and saving a `.psd` of 50 to 100 MB (time, memory) and records the result. |
+| 12 | Upstream track | In parallel with the fork: the issue texts (in English, no agent mention) are prepared in `/mnt/project-files/photo/upstream/`; Benoit publishes them. The fork branches are written so that they can become upstream pull requests. |
+| 13 | Kazo OS ADR | None planned: the module already has what is needed. If a work item needs one, the next free number is **0267** as of 2026-11-13 (check `main`, the open pull requests and every `*/base` branch again when writing it). |
+
+## Questions asked to Benoit
+
+Asked in the thread on 2026-11-13. **Benoit answered A to the four questions on 2026-11-13**: host mode in our fork and proposed upstream (Q1), PhotoCraft's tabs and a new window on double-click (Q2), default app for what nothing else opens (Q3), the Latin fonts of `craft-fonts` served on demand (Q4).
+
+**Q1. Where does PhotoCraft's host mode live?**
+
+- **A (recommended)**: in our fork now, and proposed upstream in parallel (Claude prepares the
+  issue and the branches, Benoit publishes). Kazo Photo waits for nobody; if upstream accepts, the
+  fork becomes a plain copy again.
+- B: upstream only. Nothing to maintain, but Kazo Photo waits for the answer and for an upstream
+  release, with no date.
+- C: in the fork only, proposing nothing. Every PhotoCraft version bump means carrying the patch
+  over, forever.
+
+**Q2. Several images in one window?**
+
+- **A (recommended)**: keep PhotoCraft's tabs. A Kazo Photo window holds several images, each tab
+  bound to its file (like Kazo Fig). A double-click on a file in the File Explorer opens a new
+  window. Dragging layers between images keeps working, and an image does not cost a whole
+  PhotoCraft instance (several hundred MB of memory).
+- B: one image per window, like Kazo Word. A simpler save rule, but each image costs an instance,
+  and the features that work across documents lose their point.
+- C: like A, and a double-click in the File Explorer adds a tab to the window already open. Closer
+  to Photoshop, but the OS has to route an open request to an existing window: one more work item
+  in `Kazo-ca/Os`.
+
+**Q3. Formats associated with Kazo Photo.** Kazo Paint already opens `.png .jpg .jpeg .bmp .gif .webp`.
+
+- **A (recommended)**: default app for what nothing else opens: layered documents
+  (`.pcraft .psd .psb .xcf .ora .kra .pdn`, Affinity files), RAW, and the images Kazo Paint does
+  not read (`.tif .tiff .tga .exr .hdr .heic .heif .dds .qoi .ico`…). "Open with" only for
+  `.png .jpg .jpeg .bmp .gif .webp .svg`: a double-click on a photo still opens the light app.
+- B: Kazo Photo by default for every image, once installed. A double-click on a PNG then starts a
+  heavy editor that takes several seconds to load.
+- C: default only for `.pcraft .psd .psb`, everything else through "Open with".
+
+**Q4. Fonts of the Type tool.** The web build only has Inter and JetBrains Mono.
+
+- **A (recommended)**: ship the Latin fonts of `craft-fonts` in the package (about 25 MB, OFL
+  licences), served on demand: a family is loaded on first use only. No CJK fonts in v1 (55 MB
+  more).
+- B: no extra font in v1; limit written in the listing.
+- C: all of `craft-fonts` (82 MB). The package would pass 100 MiB extracted, close to the 128 MiB
+  limit of Kazo OS.
+
+## Work items
+
+Two repositories: the fork `Kazo-ca/photocraft` (Rust) and `Kazo-ca/Os-App-Photo` (C#). In each,
+one integration branch, one branch and one pull request per work item; one implementation thread
+per work item. Benoit merges `photo/base` into `main`; the fork's `main` stays the copy of
+upstream.
+
+| No. | Repository, branch (to) | Content | Depends on |
+| --- | --- | --- | --- |
+| 0 | Os-App-Photo, `photo/0-plan` (`photo/base`) | this plan (fr and en) | — |
+| F1 | photocraft, `kazo/1-web-api` (`kazo/base`) | H7: `window.photocraft` | plan merged |
+| F2 | photocraft, `kazo/2-web-host` (`kazo/base`) | H1 to H6, H8, H9: host mode | F1 (same files) |
+| 1 | Os-App-Photo, `photo/1-solution` (`photo/base`) | solution, manifest, build from the fork, iframe page, a window that starts | plan merged; "done" waits for F2 |
+| 2 | Os-App-Photo, `photo/2-window` (`photo/base`) | open, save, tabs, exports, close guard, picker, shortcuts, theme, language, settings, fonts (Q4) | 1 and F2 |
+| 3 | Os-App-Photo, `photo/3-store` (`photo/base`) | listing, README, licences, measures, tag, catalog, `features.md` | 2, and the Kazo OS version that contains `craft-exports/base` |
+
+**Order**: F1 then F2 in one thread (they touch the same files); work item 1 in a second thread,
+at the same time; then 2; then 3.
+
+### F1. `window.photocraft` (fork)
+
+- Create `kazo/v0.23.1` on upstream commit `45066c48` (`git fetch https://github.com/storytold/photocraft refs/tags/v0.23.1`), then `kazo/base` from that branch.
+- `apps/photocraft-web/src/api.rs` on the model of `apps/gridcraft-web/src/api.rs`: a `ControlRequest` queue given to the app through `PhotocraftApp::with_control`, `craft_web_api::page::PageApi::new("photocraft", …).install()`, installed with `?control`. A call the page gives up on releases the request (`Dispatch::give_up`).
+- `craft-web-api` pinned to a revision of `storytold/craft-libs`, like the other `craft-*` dependencies of the root `Cargo.toml`.
+- **Done when**: in a page served by `trunk serve`, `await window.photocraft.request("engine.execute", { command: "session.inspect" })` answers, `ui.set { theme: "proLight" }` changes the theme, and the checks of the "What has to be added" section pass.
+
+### F2. Host mode (fork)
+
+- `apps/photocraft-web/src/host.rs` and `hostmode.rs` on GridCraft's model: `Host::connect("photocraft", canvas)`, listening for `open` and `saved`, `post_ready`, `post_save`, `post_dirty`, `post_failed`.
+- The two ★ openings in `crates/ui-egui`, as small as possible and useful outside Kazo: a file handed over with its path (H2), and the document write told apart from the write of a copy (H3), with the confirmation (H4) in place of `write_unconfirmed` in host mode. Read `app/files.rs` (`save_dialog_flow`, `write_document`, `saved`, `saves_copy`) and `file_open.rs` before choosing the shape.
+- H9, and a line in `docs/development.md` ("Web build") that describes host mode.
+- **Done when**: the test page that plays the host opens a PNG and a PSD, receives `save` with the right `saveAs` in the four cases (rewriting a PSD, a PNG that stayed flat, a PNG that became layered, Save As), the document becomes clean only after `saved`, Export As still downloads, and the same page without `data-host` behaves as before.
+
+### 1. Solution and build (`photo/1-solution`)
+
+- Solution renamed (`Kazo.Photo`, `Kazo.Photo.Os`, `Kazo.Photo.Tests`), the `[AppManifest]` of decision 1, `canChangeScreen: false`, Kazo Fig's capabilities, associations per Q3.
+- Submodule `external/KazoOs` on `craft-exports/base` (CI: `KAZOOS_BRANCH`), submodule `external/photocraft` on `kazo/base`.
+- `tools/build-photocraft.sh` (today's stable Rust, target `wasm32-unknown-unknown`, Trunk 0.21.14, `craft-i18n` at the revision of `craft-i18n.rev`, `CRAFT_I18N_REQUIRED=1`, `trunk build --release` in `apps/photocraft-web`), `tools/vendor-photocraft.sh --dir`, workflow `build-photocraft.yml`, xUnit test "the commit of `photocraft.json` is the submodule's". Models: `Os-App-Fig` and `Os-App-PDF`.
+- Iframe page (decision 5) and a window on `CraftFrame` and `FrameStartup`: loading, app, error, "Retry".
+- Until F2 is merged, compile `kazo/v0.23.1` to break in the tooling; the journey that waits for `ready` comes with F2.
+- **Done when**: the app starts in WebGPU and in WebGL 2, two windows run together, the `.kazoapp` package installs in a published Kazo OS; package size and memory per window recorded here.
+
+**Done on 2026-11-13** (PR `photo/1-solution` → `photo/base`), with the fork still on `kazo/v0.23.1` (F2 not merged):
+
+| Point | Result |
+| --- | --- |
+| Solution | `Kazo.Photo.slnx`: `Kazo.Photo` (app), `Kazo.Photo.Os` (host), `Kazo.Photo.Tests` (xUnit), `tests/e2e` (Playwright). |
+| Manifest | `ca.kazo.photo` 0.1.0, `pub.kazo`, `graphics`, several windows, 1280 × 820, minimum 762 × 520 (760 × 480 of content plus the frame), `canChangeScreen: false`, Kazo Fig's capabilities, minimum version 3.3.3. |
+| Associations (Q3 = A) | `open` and `edit` for layered documents, RAW files, the images Kazo Paint does not read and the presets (`.abr .grd .asl .aco .act .ase`); `open` alone for `.png .jpg .jpeg .bmp .gif .webp .svg`. `.svgz` and `.svg` have two media types, so no type mixes both cases (`Documents/PhotoFormats.cs`). |
+| Submodules | `external/KazoOs` on `craft-exports/base` (`c91effd`, CI: `KAZOOS_BRANCH`, `KAZOOS_USE_SOURCE`), `external/photocraft` on `kazo/v0.23.1` (`45066c48`). |
+| Build tooling | `tools/build-photocraft.sh`: Trunk 0.21.14 directly (not `packaging/web/package.sh`, which cuts the `.wasm` into parts), `craft-i18n` required at the revision of `craft-i18n.rev`. 16 minutes from scratch here (4 cores, Rust 1.97.0). Workflow `build-photocraft.yml` on the model of Kazo Pdf. |
+| Build | `.wasm` of 39,250,977 bytes (37.4 MiB), `.js` of 182 KB, plus the licences (MIT, Apache, `NOTICE`, `ATTRIBUTION.md`, OFL of Inter and JetBrains Mono). `.kazoapp` package (`-t:KazoOsPack`): **16.2 MB**. |
+| Window | `CraftFrame` and `FrameStartup`: loading screen, error with "Retry" after 60 s, theme (`pro`, `proLight`) and language (`prefs.set interface.language`) on `ready`, `ReservedKeys.Os` without `Ctrl+N` (decision 10). Iframe page with `#photocraft_loading` and `#photocraft_stopped` (`host/photocraft-page.css`). |
+| Browser | In Kazo OS (Chromium with no graphics card), PhotoCraft starts in each window's iframe, two windows together, and draws its home screen on WebGL 2 (`--webgl`). On software WebGPU (SwiftShader), PhotoCraft loses its device right after starting ("A valid external Instance reference no longer exists"): a limit of that browser, **to check on a real graphics card**. |
+| Memory | Chromium renderer processes, no image open: 768 MiB for the OS alone, 886 MiB with one Kazo Photo window, 930 MiB with two. To measure again with a `.psd` in work item 2 (decision 11). |
+| Tests | 69 xUnit tests; 3 Playwright journeys green, the 4th ("the window shows PhotoCraft once it is ready") marked `todo` until F2. |
+
+**Follow-up on 2026-11-13, after F2** (PR `photo/1b-host-mode-build` → `photo/base`): `external/photocraft` moves to `kazo/base` (`16ae9d59`, F2's host mode), build recompiled (`.wasm` of 39,297,323 bytes, `.js` of 193 KB). PhotoCraft sends `photocraft:ready`: the window leaves its loading screen and shows PhotoCraft. The `ready` journey is no longer `todo`: 4 Playwright journeys green, 69 xUnit tests.
+
+**Left, not checkable here**: WebGPU on a real graphics card and installing the `.kazoapp` in a published Kazo OS (which waits for a Kazo OS release containing `craft-exports/base`, work item 3).
+
+### 2. Window (`photo/2-window`)
+
+- Opening: the file asked at launch, `OpenAsync`, decision 7. Presets (`.abr .grd .asl .aco .act .ase`): sent to PhotoCraft with no binding.
+- Saving: decision 6; format list (`CraftDocumentFormats`); the four cases of F2 end to end in Kazo OS; a cancelled dialog or a refused write leaves the document modified.
+- Tabs per Q2: each name bound to its path, window title on the active tab, close guard (decision 8).
+- Exports as copies (`Exporting`), file picker (`PickRequested`, one or several files), shortcuts (decision 10), theme and language (decision 9), per-user settings (`WebStorageFile`), served fonts per Q4 (`host/fonts/manifest.txt`, licences in `THIRD-PARTY-NOTICES`).
+- The measure of decision 11.
+- **Done when**: no case loses changes unless the user chose to, no browser dialog or download comes out of the app, and the OS shortcuts work with the cursor in the image.
+
+**Done on 2026-11-13** (pull request `photo/2-window` → `photo/base`, developed against Kazo OS's `craft-exports/base`):
+
+| Point | Result |
+| --- | --- |
+| Tabs (Q2 = A) | `PhotoDocuments` on `DocumentSession`: each tab is bound to its file by the name PhotoCraft saves it under (`session.inspect`, read by `PhotoDocumentList`; the tab's index is its id, PhotoCraft has no other). Window title on the active tab (`*poster.psd — Kazo Photo`), updated on `dirty`, after each save and when the window is activated. |
+| Opening | The file asked at launch; PhotoCraft's File › Open (and the home screen's "Open…") shows the OS dialog, PhotoCraft hears "cancelled" and the window opens each file itself, bound. A file already open brings its tab back (`document.activate`), even after Save As. Decision 7: a file whose name is already taken in the window (tab, binding or a tab's file) opens in a new window (`KazoApps.LaunchAsync`). Presets: sent with no binding. Other pickers (Place, LUT, brushes…) get the files read. |
+| Saving | Decision 6 end to end: rewrite of a bound file, OS dialog for a first save, Save As and a PNG that gained layers (`saveAs`), in the file's folder. A cancelled dialog or a refused write leaves the image modified, with a notice in the window. |
+| Exports | Save a Copy, Export As… (`Exporting`): always a copy, "Save a copy" dialog, the image stays bound to its file. No browser download. |
+| Closing (decision 8) | Guard: "Save the changes to … ?" (Yes saves every modified tab in PhotoCraft's order, No closes, Cancel keeps the window); if PhotoCraft no longer answers and there is unsaved work, the window says so before closing. |
+| Shortcuts (decision 10) | `ReservedKeys.Os` without `Ctrl+N`; `Alt+Q` (the OS's other Close chord; headless Chromium does not deliver the `F4` of `Alt+F4`) pressed in the image closes the window through the guard (Playwright run). Conflicts with PhotoCraft: `Alt+F9` (Window › Actions) and held `Alt+Space` (zoom out) stay the OS's; Actions opens from the menu, zoom out with `Ctrl+-` (View › Zoom Out). To note in the listing (work item 3). |
+| Theme, language, settings | The OS theme (`pro`, `proLight`) followed live, the user's language at `ready`. PhotoCraft's storage (`photocraft.preferences`…) lives in each user's `~/.config/ca.kazo.photo/` (`WebStorageFile`, written 500 ms after the first write, and on close). |
+| Fonts (Q4 = A) | `tools/vendor-fonts.sh` copies craft-fonts' Latin catalog (`tools/craft-fonts.rev`, `c1db6d1a`), less Inter, into `wwwroot/host/fonts/`: 47 OFL-1.1 files, 19 MB, `fonts/manifest.txt` relative to the page. Licences: each family's `OFL.txt` and `THIRD-PARTY-NOTICES.md`. |
+| Large file (decision 11) | A 2400 × 1800 `.psd` with three layers of noise (incompressible): 52.5 MB once written by PhotoCraft. Headless Chromium without a GPU, 4 cores, `--webgl`. **PhotoCraft's read alone** (bytes already in memory): 2.8 s. **Save As** (dialog answered → file written, tab clean): 43.4 s; **Save** in place: 43.5 s. **Opening from the file system** (`xdg-open`, window ready → tab listed): 40.0 s. Nearly all this time is outside PhotoCraft, in moving the file between the window and the OS file system (`KazoFile`): to follow up on the Kazo OS side. Memory (all Chromium processes): 796 MiB for the OS alone, 1,391 MiB with one window, 1,960 MiB with the image open, 2,588 MiB after the save, 2,990 MiB with a 2nd window on the saved file. No refusal and no PhotoCraft stop. Measuring script not committed (a generated file, handed to PhotoCraft then saved by the window). |
+| Tests | 110 xUnit tests; 10 green Playwright runs in Kazo OS (4 from work item 1, 6 new in `open-save.e2e.mjs`: save then reopen with `xdg-open`, Save As and copy, close guard, bound Open and tab brought back, decision 7, `Alt+Q` from the image). |
+
+**Known limits**: PhotoCraft has no command to rename a tab, which keeps after Save As the name it suggested (the window title shows the chosen file). Presets (brushes, gradients…) are in PhotoCraft's IndexedDB, shared by every Kazo user of the browser. In the web build, PhotoCraft's filters refuse a whole image beyond their working-memory budget ("not enough working memory", for example Add Noise on 3000 × 2000).
+
+**Found in Kazo OS, outside this app**: the OS file dialog throws `ObjectDisposedException` (`FileView.DisposeAsync`, `_watchLoopCts` already disposed by `AttachWatchAsync`) when it closes right after entering a folder; Blazor then stops rendering the page. The runs wait one second after a navigation.
+
+### 3. Store (`photo/3-store`)
+
+- Icon without the ArtCraft logo, listing in fr and en ("based on PhotoCraft by the ArtCraft team", known limits: 128 MiB per file, memory, presets shared between users, fonts), screenshots, README rebuilt from the listing (`store:readme`, "Try it" with `?autolaunch=ca.kazo.photo`), `THIRD-PARTY-NOTICES`.
+- OS submodule on the tag of the version that contains `craft-exports/base`, `minimumVersion`, journey in a published Kazo OS, "Tag a release" workflow, pull request to the `Os-AppMarketPlace` catalog, `features.md` row in `Kazo-ca/Os`.
+- **Done when**: Kazo Photo installs from the Store, opens a `.psd` on double-click and saves it.
+
+**Done on 2026-11-14** (PR `photo/3-store` → `photo/base`), against the published Kazo OS 3.3.4:
+
+| Point | Result |
+| --- | --- |
+| Kazo OS | `external/KazoOs` on the tag `v3.3.4` (the release that brings `craft-exports/base`, ADR 0264); CI back on the nuget.org packages (`KAZOOS_BRANCH` and `KAZOOS_USE_SOURCE` removed, submodule check on the tag only). The manifest asks for **Kazo OS 3.3.4** (`minimumVersion`, generated from the SDK version). |
+| Listing | `store/description.{en,fr}.md`, short descriptions, `store.json` (category `graphics`, tags `image-editor photo layers psd graphics`). Credits PhotoCraft by the ArtCraft team and the OFL fonts; known limits: alpha, 128 MiB per file, time and memory of large images, filters' working memory, presets shared between users, no CJK font, WebGPU or WebGL 2, the two shortcuts kept by the OS (decision 10), tab name after Save As, window that stays on its screen, size. |
+| Icon | `store/icon.png` (256 × 256) rendered from `wwwroot/icons/app.svg`, this repository's own drawing: no ArtCraft mark. |
+| Screenshots | `store/screenshots/1.png` to `3.png`, taken by `tests/installed/` in the published OS 3.3.4 with a landscape drawn in code (`sample-image.mjs`): the layered image maximized, the OS Save As dialog, the File Explorer with the `.psd`. |
+| README | Rebuilt on the listing (`.github/scripts/store-readme.mjs`, `npm run store:readme`, checked in CI), "Try it" with `https://os.kazo.ca/?autolaunch=ca.kazo.photo`, "About Kazo OS", the former content under "Development". |
+| Licenses | `THIRD-PARTY-NOTICES.md` and `-fr.md`: PhotoCraft (version, fork commit, the fork's changes), its notices, the license files its `NOTICE` and `ATTRIBUTION.md` name but its web build lacks (copied from the fork at the bundled commit into `wwwroot/legal/photocraft/`: Lucide, Noun Project glyph CC BY 3.0, symmetry glyphs, app icon, Solarized, SCOWL, libfacedetection), the 15 font families. `LICENSE` and both notices linked into the package (`wwwroot/legal/`). `LegalFilesTests` (28 tests). |
+| Size | `.kazoapp` of **25.3 MB** (PhotoCraft 16 MB compressed plus the fonts), **58.5 MB** once installed (81 files). |
+| Start | In the published OS served by a local static host, Chromium headless without a graphics card: first window **9.6 s** from the launcher to PhotoCraft shown (download and compile of the 39 MB `.wasm`), the next one **0.9 s** (browser cache). Over the Internet, add the download time of 25 MB. |
+| Renderer | Without WebGPU (Chromium on Linux has none by default), PhotoCraft falls back to WebGL 2 by itself: no launch argument needed. With a software adapter, its status bar reads "CPU Rendering". WebGPU on a real graphics card is still unchecked. |
+| Installed journey | `tests/installed/install-and-open.mjs` (`npm run test:installed -- <Kazo OS wwwroot>`), **PASS** on `kazoos-wasm-3.3.4.zip`: `sudo kazopkg install Kazo-ca/Os-App-Photo` (API check against the trimmed runtime included), PNG uploaded, File › Open through the OS dialog, adjustment layer, Save → OS dialog → `landscape.psd`, double-click on `landscape.psd` in the File Explorer opens it, a layer added and saved in place with no dialog, licenses present in the installed package. `--store` installs from the real Store, for the check after the release. |
+| Tests | 138 xUnit tests (Release, nuget.org 3.3.4 packages); the 10 Playwright journeys of work items 1 and 2 against the 3.3.4 submodule. |
+
+**Seen while taking the screenshots**: on Save a Copy, PhotoCraft's status bar already says "Saved a copy as …" while the OS dialog is still open, and keeps saying it if the dialog is cancelled (PhotoCraft writes it when it hands the file over). To raise upstream with the host mode.
+
+**Left, after the merge of `photo/base` into `main` (Benoit)**: "Tag a release" workflow (`v0.1.0`), catalog pull request to `Os-AppMarketPlace` (by hand if `HACK_STORE_TOKEN` is missing), `npm run test:installed -- --store` against the Store, Kazo Photo row of `features.md` in `Kazo-ca/Os`.
+
+## Upstream track
+
+Drafts in English, published by Benoit, in `/mnt/project-files/photo/upstream/`:
+
+- PhotoCraft: host mode of the web build (`craft-web-host`), with behaviours H1 to H6;
+- PhotoCraft: `window.photocraft` (`craft-web-api`);
+- `craft-libs`: join #611 (save confirmation) and #610 (`open-request`).
+
+Not checked: the issues already open upstream on these subjects (`storytold` is out of the
+session's reach); Benoit looks before publishing. DesignCraft and VectorCraft have the same gap:
+what is done here is their model.
+
+## Progress
+
+- [x] Step 0: reading PhotoCraft 0.23.1, building and trying the web build.
+- [x] Plan in fr and en.
+- [x] Benoit's answers to Q1 to Q4: A everywhere (2026-11-13).
+- [x] F1, F2 (fork, 2026-11-13): `window.photocraft` with `?control` (Kazo-ca/photocraft#1) and craft-web-host mode (Kazo-ca/photocraft#2), merged into `kazo/base`. Commit to pin: `16ae9d59ecbaf987a26427b66edff708463b5c1f`. Checked in headless Chromium (`?webgl`) with a test host page: 22 of 22 checks (ready, open, dirty, save with the right `saveAs`, saved, copy downloaded, Blob refused, H9). Wasm clippy of `photocraft-web` keeps one pre-existing error (`wildcard_imports` in `preset_bridge.rs`, upstream code).
+- [x] Work item 1: solution, manifest, build from the fork, iframe page, window (2026-11-13), fork on `kazo/base` with the host mode.
+- [x] Work item 2: window, bound opening and saving, tabs, exports as copies, close guard, pickers, shortcuts, theme, language, per-user settings, Latin fonts, measure of a large `.psd` (2026-11-13).
+- [x] Work item 3: Store listing, icon, screenshots, README, third-party notices, OS 3.3.4, journey in the published OS (2026-11-14).
+- [ ] Release: `photo/base` into `main` (Benoit), tag `v0.1.0`, catalog, `features.md`.
