@@ -267,6 +267,26 @@ at the same time; then 2; then 3.
 - OS submodule on the tag of the version that contains `craft-exports/base`, `minimumVersion`, journey in a published Kazo OS, "Tag a release" workflow, pull request to the `Os-AppMarketPlace` catalog, `features.md` row in `Kazo-ca/Os`.
 - **Done when**: Kazo Photo installs from the Store, opens a `.psd` on double-click and saves it.
 
+**Done on 2026-11-14** (PR `photo/3-store` → `photo/base`), against the published Kazo OS 3.3.4:
+
+| Point | Result |
+| --- | --- |
+| Kazo OS | `external/KazoOs` on the tag `v3.3.4` (the release that brings `craft-exports/base`, ADR 0264); CI back on the nuget.org packages (`KAZOOS_BRANCH` and `KAZOOS_USE_SOURCE` removed, submodule check on the tag only). The manifest asks for **Kazo OS 3.3.4** (`minimumVersion`, generated from the SDK version). |
+| Listing | `store/description.{en,fr}.md`, short descriptions, `store.json` (category `graphics`, tags `image-editor photo layers psd graphics`). Credits PhotoCraft by the ArtCraft team and the OFL fonts; known limits: alpha, 128 MiB per file, time and memory of large images, filters' working memory, presets shared between users, no CJK font, WebGPU or WebGL 2, the two shortcuts kept by the OS (decision 10), tab name after Save As, window that stays on its screen, size. |
+| Icon | `store/icon.png` (256 × 256) rendered from `wwwroot/icons/app.svg`, this repository's own drawing: no ArtCraft mark. |
+| Screenshots | `store/screenshots/1.png` to `3.png`, taken by `tests/installed/` in the published OS 3.3.4 with a landscape drawn in code (`sample-image.mjs`): the layered image maximized, the OS Save As dialog, the File Explorer with the `.psd`. |
+| README | Rebuilt on the listing (`.github/scripts/store-readme.mjs`, `npm run store:readme`, checked in CI), "Try it" with `https://os.kazo.ca/?autolaunch=ca.kazo.photo`, "About Kazo OS", the former content under "Development". |
+| Licenses | `THIRD-PARTY-NOTICES.md` and `-fr.md`: PhotoCraft (version, fork commit, the fork's changes), its notices, the license files its `NOTICE` and `ATTRIBUTION.md` name but its web build lacks (copied from the fork at the bundled commit into `wwwroot/legal/photocraft/`: Lucide, Noun Project glyph CC BY 3.0, symmetry glyphs, app icon, Solarized, SCOWL, libfacedetection), the 15 font families. `LICENSE` and both notices linked into the package (`wwwroot/legal/`). `LegalFilesTests` (28 tests). |
+| Size | `.kazoapp` of **25.3 MB** (PhotoCraft 16 MB compressed plus the fonts), **58.5 MB** once installed (81 files). |
+| Start | In the published OS served by a local static host, Chromium headless without a graphics card: first window **9.6 s** from the launcher to PhotoCraft shown (download and compile of the 39 MB `.wasm`), the next one **0.9 s** (browser cache). Over the Internet, add the download time of 25 MB. |
+| Renderer | Without WebGPU (Chromium on Linux has none by default), PhotoCraft falls back to WebGL 2 by itself: no launch argument needed. With a software adapter, its status bar reads "CPU Rendering". WebGPU on a real graphics card is still unchecked. |
+| Installed journey | `tests/installed/install-and-open.mjs` (`npm run test:installed -- <Kazo OS wwwroot>`), **PASS** on `kazoos-wasm-3.3.4.zip`: `sudo kazopkg install Kazo-ca/Os-App-Photo` (API check against the trimmed runtime included), PNG uploaded, File › Open through the OS dialog, adjustment layer, Save → OS dialog → `landscape.psd`, double-click on `landscape.psd` in the File Explorer opens it, a layer added and saved in place with no dialog, licenses present in the installed package. `--store` installs from the real Store, for the check after the release. |
+| Tests | 138 xUnit tests (Release, nuget.org 3.3.4 packages); the 10 Playwright journeys of work items 1 and 2 against the 3.3.4 submodule. |
+
+**Seen while taking the screenshots**: on Save a Copy, PhotoCraft's status bar already says "Saved a copy as …" while the OS dialog is still open, and keeps saying it if the dialog is cancelled (PhotoCraft writes it when it hands the file over). To raise upstream with the host mode.
+
+**Left, after the merge of `photo/base` into `main` (Benoit)**: "Tag a release" workflow (`v0.1.0`), catalog pull request to `Os-AppMarketPlace` (by hand if `HACK_STORE_TOKEN` is missing), `npm run test:installed -- --store` against the Store, Kazo Photo row of `features.md` in `Kazo-ca/Os`.
+
 ## Upstream track
 
 Drafts in English, published by Benoit, in `/mnt/project-files/photo/upstream/`:
@@ -287,4 +307,5 @@ what is done here is their model.
 - [x] F1, F2 (fork, 2026-11-13): `window.photocraft` with `?control` (Kazo-ca/photocraft#1) and craft-web-host mode (Kazo-ca/photocraft#2), merged into `kazo/base`. Commit to pin: `16ae9d59ecbaf987a26427b66edff708463b5c1f`. Checked in headless Chromium (`?webgl`) with a test host page: 22 of 22 checks (ready, open, dirty, save with the right `saveAs`, saved, copy downloaded, Blob refused, H9). Wasm clippy of `photocraft-web` keeps one pre-existing error (`wildcard_imports` in `preset_bridge.rs`, upstream code).
 - [x] Work item 1: solution, manifest, build from the fork, iframe page, window (2026-11-13), fork on `kazo/base` with the host mode.
 - [x] Work item 2: window, bound opening and saving, tabs, exports as copies, close guard, pickers, shortcuts, theme, language, per-user settings, Latin fonts, measure of a large `.psd` (2026-11-13).
-- [ ] Work item 3.
+- [x] Work item 3: Store listing, icon, screenshots, README, third-party notices, OS 3.3.4, journey in the published OS (2026-11-14).
+- [ ] Release: `photo/base` into `main` (Benoit), tag `v0.1.0`, catalog, `features.md`.
