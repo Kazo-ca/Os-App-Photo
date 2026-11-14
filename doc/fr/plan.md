@@ -270,6 +270,27 @@ deuxième fil, en même temps ; puis 2 ; puis 3.
 - Sous-module de l'OS sur l'étiquette de la version qui contient `craft-exports/base`, `minimumVersion`, parcours dans un Kazo OS publié, workflow « Tag a release », PR au catalogue `Os-AppMarketPlace`, ligne de `features.md` dans `Kazo-ca/Os`.
 - **Terminé quand** : Kazo Photo s'installe depuis le Store, ouvre un `.psd` par double-clic et l'enregistre.
 
+
+**Fait le 2026-11-14** (PR `photo/3-store` → `photo/base`), contre le Kazo OS 3.3.4 publié :
+
+| Point | Résultat |
+| --- | --- |
+| Kazo OS | `external/KazoOs` sur l'étiquette `v3.3.4` (la version qui apporte `craft-exports/base`, ADR 0264) ; CI revenue aux paquets de nuget.org (`KAZOOS_BRANCH` et `KAZOOS_USE_SOURCE` retirés, contrôle du sous-module sur l'étiquette seulement). Le manifeste demande **Kazo OS 3.3.4** (`minimumVersion`, généré depuis la version du SDK). |
+| Fiche | `store/description.{en,fr}.md`, descriptions courtes, `store.json` (catégorie `graphics`, étiquettes `image-editor photo layers psd graphics`). Crédite PhotoCraft de l'équipe ArtCraft et les polices OFL ; limites connues : alpha, 128 Mio par fichier, temps et mémoire des grandes images, mémoire de travail des filtres, préréglages partagés entre utilisateurs, pas de police CJK, WebGPU ou WebGL 2, les deux raccourcis gardés par l'OS (décision 10), nom de l'onglet après Enregistrer sous, fenêtre qui reste sur son écran, taille. |
+| Icône | `store/icon.png` (256 × 256) rendue depuis `wwwroot/icons/app.svg`, dessin propre à ce dépôt : aucune marque ArtCraft. |
+| Captures | `store/screenshots/1.png` à `3.png`, prises par `tests/installed/` dans l'OS 3.3.4 publié avec un paysage dessiné dans le code (`sample-image.mjs`) : l'image à calques en plein écran, le dialogue Enregistrer sous de l'OS, l'Explorateur de fichiers avec le `.psd`. |
+| README | Refait sur la fiche (`.github/scripts/store-readme.mjs`, `npm run store:readme`, vérifié en CI), « Essayer » avec `https://os.kazo.ca/?autolaunch=ca.kazo.photo`, « À propos de Kazo OS », l'ancien contenu sous « Développement ». |
+| Licences | `THIRD-PARTY-NOTICES.md` et `-fr.md` : PhotoCraft (version, commit du fork, changements du fork), ses avis, les fichiers de licence que nomment son `NOTICE` et son `ATTRIBUTION.md` mais que son build web n'a pas (copiés depuis le fork au commit livré dans `wwwroot/legal/photocraft/` : Lucide, glyphe Noun Project CC BY 3.0, glyphes de symétrie, icône de l'app, Solarized, SCOWL, libfacedetection), les 15 familles de polices. `LICENSE` et les deux avis liés dans le paquet (`wwwroot/legal/`). `LegalFilesTests` (28 tests). |
+| Taille | `.kazoapp` de **25,3 Mo** (PhotoCraft compressé à 16 Mo, plus les polices), **58,5 Mo** une fois installé (81 fichiers). |
+| Démarrage | Dans l'OS publié servi par un hôte statique local, Chromium headless sans carte graphique : première fenêtre **9,6 s** du lanceur à PhotoCraft affiché (téléchargement et compilation du `.wasm` de 39 Mo), la suivante **0,9 s** (cache du navigateur). Par Internet, ajouter le téléchargement de 25 Mo. |
+| Rendu | Sans WebGPU (Chromium sous Linux n'en a pas par défaut), PhotoCraft passe tout seul en WebGL 2 : aucun argument de lancement. Avec un adaptateur logiciel, sa barre d'état affiche « CPU Rendering ». WebGPU sur une vraie carte graphique reste à vérifier. |
+| Parcours installé | `tests/installed/install-and-open.mjs` (`npm run test:installed -- <wwwroot de Kazo OS>`), **PASS** sur `kazoos-wasm-3.3.4.zip` : `sudo kazopkg install Kazo-ca/Os-App-Photo` (contrôle d'API contre le runtime élagué compris), PNG téléversé, Fichier › Ouvrir par le dialogue de l'OS, calque de réglage, Enregistrer → dialogue de l'OS → `landscape.psd`, double-clic sur `landscape.psd` dans l'Explorateur de fichiers qui l'ouvre, calque ajouté et enregistré sur place sans dialogue, licences présentes dans le paquet installé. `--store` installe depuis le vrai Store, pour la vérification après la sortie. |
+| Tests | 138 tests xUnit (Release, paquets 3.3.4 de nuget.org) ; les 10 parcours Playwright des chantiers 1 et 2 contre le sous-module 3.3.4. |
+
+**Vu en prenant les captures** : sur Enregistrer une copie, la barre d'état de PhotoCraft dit déjà « Saved a copy as … » pendant que le dialogue de l'OS est ouvert, et le dit encore si le dialogue est annulé (PhotoCraft l'écrit quand il remet le fichier). À signaler en amont avec le mode hébergé.
+
+**Reste, après la fusion de `photo/base` dans `main` (Benoit)** : workflow « Tag a release » (`v0.1.0`), PR du catalogue vers `Os-AppMarketPlace` (à la main si `HACK_STORE_TOKEN` manque), `npm run test:installed -- --store` contre le Store, ligne Kazo Photo de `features.md` dans `Kazo-ca/Os`.
+
 ## Piste en amont
 
 Brouillons en anglais, publiés par Benoit, dans `/mnt/project-files/photo/upstream/` :
@@ -290,4 +311,5 @@ qui est fait ici leur sert de modèle.
 - [x] F1, F2 (fork, 2026-11-13) : `window.photocraft` avec `?control` (Kazo-ca/photocraft#1) et mode hôte craft-web-host (Kazo-ca/photocraft#2), fusionnés dans `kazo/base`. Commit à épingler : `16ae9d59ecbaf987a26427b66edff708463b5c1f`. Vérifié dans Chromium headless (`?webgl`) avec une page hôte de test : 22 contrôles sur 22 (ready, open, dirty, save avec le bon `saveAs`, saved, copie téléchargée, Blob refusé, H9). Le clippy wasm de `photocraft-web` garde une erreur antérieure (`wildcard_imports` dans `preset_bridge.rs`, code amont).
 - [x] Chantier 1 : solution, manifeste, compilation depuis le fork, page d'iframe, fenêtre (2026-11-13), fork sur `kazo/base` avec le mode hébergé.
 - [x] Chantier 2 : fenêtre, ouverture et enregistrement liés, onglets, exports en copies, garde de fermeture, sélecteurs, raccourcis, thème, langue, réglages par utilisateur, polices latines, mesure d'un grand `.psd` (2026-11-13).
-- [ ] Chantier 3.
+- [x] Chantier 3 : fiche du Store, icône, captures, README, avis de tiers, OS 3.3.4, parcours dans l'OS publié (2026-11-14).
+- [ ] Sortie : `photo/base` dans `main` (Benoit), étiquette `v0.1.0`, catalogue, `features.md`.
