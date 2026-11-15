@@ -51,7 +51,6 @@ editor written in Rust, which runs here in a Kazo OS window.
   PhotoCraft and lose the open images.
 - The download is about 25 MB (59 MB once installed), and each window loads its own copy of
   PhotoCraft.
-- Needs Kazo OS 3.3.4 or later.
 
 ## License
 

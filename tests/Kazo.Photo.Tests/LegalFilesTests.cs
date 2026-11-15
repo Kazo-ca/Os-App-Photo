@@ -111,13 +111,16 @@ public sealed class LegalFilesTests
     }
 
     [Fact]
-    public void The_store_listing_names_the_minimum_Kazo_OS_version_of_the_manifest()
+    public void The_store_listing_names_no_Kazo_OS_version()
     {
-        // The listing tells users which Kazo OS they need: it must follow the manifest.
-        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "src", "Kazo.Photo", "manifest.json")));
-        string minimum = manifest.RootElement.GetProperty("sdkCompatibility").GetProperty("minimumVersion").GetString()!;
-        Assert.Contains($"Kazo OS {minimum}", File.ReadAllText(Path.Combine(Root, "store", "description.en.md")), StringComparison.Ordinal);
-        Assert.Contains($"Kazo OS {minimum}", File.ReadAllText(Path.Combine(Root, "store", "description.fr.md")), StringComparison.Ordinal);
+        // The Kazo OS SDK update moves the app to each new Kazo OS. The Store merges that update by
+        // itself only when the descriptions keep the same bytes (rebuild only, ADR 0271 §5 of
+        // Kazo-ca/Os), so they must not name a Kazo OS version: the Store reads the requirement
+        // from the manifest's sdkCompatibility.
+        foreach (string file in new[] { "description.en.md", "description.fr.md" })
+        {
+            Assert.DoesNotMatch(@"Kazo OS \d+\.\d+", File.ReadAllText(Path.Combine(Root, "store", file)));
+        }
     }
 
     [Fact]
