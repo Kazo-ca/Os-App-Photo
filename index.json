@@ -2,6 +2,11 @@
   "appId": "ca.kazo.photo",
   "versions": [
     {
+      "version": "0.1.1",
+      "path": "0.1.1/ca.kazo.photo-0.1.1.kazoapp",
+      "sha256": "c630f44fdbc4d2713b8d7d6c81ad22c6f913efba031df55a8cac5805185b997b"
+    },
+    {
       "version": "0.1.1-beta.1",
       "path": "0.1.1-beta.1/ca.kazo.photo-0.1.1-beta.1.kazoapp",
       "sha256": "15c510b0d133087e477bcc8cbde5852bec7dad310b43d19a5da0c06496dc53bc"
