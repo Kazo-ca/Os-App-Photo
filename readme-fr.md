@@ -66,7 +66,6 @@ libre écrit en Rust, qui tourne ici dans une fenêtre de Kazo OS.
   PhotoCraft et perdrait les images ouvertes.
 - Le téléchargement fait environ 25 Mo (59 Mo une fois installé), et chaque fenêtre charge sa
   propre copie de PhotoCraft.
-- Demande Kazo OS 3.3.4 ou plus récent.
 
 ## Licence
 
