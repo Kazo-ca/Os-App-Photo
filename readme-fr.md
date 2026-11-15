@@ -140,7 +140,9 @@ ou lancez `dotnet run --project src/Kazo.Photo.Os`.
 ### La version de Kazo OS
 
 `external/KazoOs/wasm2/KazoOs/build/Versions.props` est la version de Kazo OS de ce dépôt.
-Pour changer de version, placez le sous-module sur son tag et validez-le :
+Le workflow **Kazo OS SDK update** le déplace pour vous quand Kazo OS publie une version (voir
+[Suivre les nouvelles versions de Kazo OS](#suivre-les-nouvelles-versions-de-kazo-os)). Pour le
+faire à la main, placez le sous-module sur son tag et validez-le :
 
 ```bash
 git -C external/KazoOs fetch --depth 1 origin tag v2.2.0
@@ -171,6 +173,10 @@ Forcez l'un ou l'autre avec `-p:KazoOsUseSource=true` ou `false`.
    `apps/<appId>_<version>/`. Avec un secret `HACK_STORE_TOKEN` (un jeton qui peut créer un fork et
    ouvrir des pull requests), il ouvre la pull request vers `Kazo-ca/Os-AppMarketPlace` depuis
    votre fork ; sans lui, téléchargez l'artefact du workflow et ouvrez la pull request vous-même.
+   Une version avec un suffixe (`0.1.1-beta.1`) va dans le canal bêta du catalogue, les autres dans
+   son `main`. Dans `Kazo-ca`, l'app d'automatisation de Kazo OS (secrets d'organisation
+   `KAZO_AUTOMATION_APP_ID` et `KAZO_AUTOMATION_APP_KEY`) l'ouvre depuis une branche du catalogue,
+   sans fork ni jeton.
 
 `HACK_STORE_TOKEN` est un jeton d'accès personnel GitHub à vous, que Kazo OS ne fournit pas :
 
@@ -184,6 +190,25 @@ Forcez l'un ou l'autre avec `-p:KazoOsUseSource=true` ou `false`.
 
 Le catalogue ne prend jamais de binaire de votre part : une fois votre pull request relue et
 fusionnée, sa CI compile l'app au commit du tag.
+
+### Suivre les nouvelles versions de Kazo OS
+
+Le workflow **Kazo OS SDK update** (`sdk-update.yml`) tourne toutes les heures, quand Kazo OS
+annonce une version, ou à la main depuis l'onglet Actions. Quand Kazo OS a une version plus récente,
+il y déplace le sous-module `external/KazoOs`, monte la version de l'app
+(`.github/scripts/bump-app-version.sh`) sur une branche `kazoos-sdk/<version>` et y lance la CI :
+
+- une préversion de Kazo OS : la branche `beta` la reçoit, en version `x.y.(z+1)-beta.<n>`, qui va
+  dans le canal bêta du Kazo OS Store ;
+- une version stable mineure ou majeure : une pull request vers `main`, fusionnée, taguée et publiée ;
+- une version stable corrective : vérifiée seulement, rien n'est publié.
+
+Une CI rouge ouvre une issue `TODO` et ne change rien. Une version avec un suffixe (`0.1.1-beta.1`)
+se publie toujours depuis `beta`, une version sans suffixe depuis `main`. La mise à jour ne touche
+jamais `external/photocraft` ni la compilation de PhotoCraft : changer de PhotoCraft reste le
+workflow **Build PhotoCraft** décrit plus haut. Les workflows de ce dépôt sont courts : ils appellent
+les workflows partagés de [Kazo-ca/Os-AppTemplate](https://github.com/Kazo-ca/Os-AppTemplate)
+(`@v1`), qui s'améliorent sans changement ici ; seul `build-photocraft.yml` est propre à ce dépôt.
 
 ### Publier sur la branche `kazoos-packages`
 
