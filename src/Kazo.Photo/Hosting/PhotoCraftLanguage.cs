@@ -14,7 +14,7 @@ namespace Kazo.Photo.Hosting;
 /// </remarks>
 public static class PhotoCraftLanguage
 {
-    /// <summary>The languages PhotoCraft 0.23.1 has a catalog for, besides English.</summary>
+    /// <summary>The languages PhotoCraft 0.24.0-rc.1 has a catalog for, besides English.</summary>
     public static IReadOnlyList<string> Available { get; } =
     [
         "ar", "az", "bn", "bs", "cs", "da", "de", "el", "es", "fi", "fr", "he", "hi", "hu", "id", "it",

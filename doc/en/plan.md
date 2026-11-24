@@ -299,6 +299,44 @@ Not checked: the issues already open upstream on these subjects (`storytold` is 
 session's reach); Benoit looks before publishing. DesignCraft and VectorCraft have the same gap:
 what is done here is their model.
 
+
+## Upstream updates
+
+### 2026-11-23: PhotoCraft 0.24.0-rc.1
+
+Benoit chose to follow the upstream `release` branch, with the official tag when one exists (thread
+"Mettre à jour les apps Craft", answers 1B 2A 3A). PhotoCraft's tag `v0.24.0-rc.1` is commit
+`181961ae` of `release`.
+
+| | |
+| --- | --- |
+| Fork | `kazo/v0.24.0-rc.1` = upstream `181961ae`; `kazo/base-0.24.0-rc.1` = that commit plus F1 and F2 carried over, and two follow-up commits (head `6a1fc53a`). `kazo/v0.23.1` and `kazo/base` stay as they were. |
+| Submodule | `external/photocraft` on `kazo/base-0.24.0-rc.1` (`6a1fc53a`). |
+| Build | Rust 1.100.0 (PhotoCraft's `rust-toolchain.toml`), Trunk 0.21.14, craft-i18n `e56d2624`. The `.wasm` grows from 37.6 MiB to 72.8 MiB (PhotoCraft moved onto the shared craft UI framework), under Kazo OS's 128 MiB per file. |
+| App | Version 0.2.0. Same 35 languages. The NOTICE now points to the jpeg-encoder license files, shipped in `wwwroot/legal/photocraft/jpeg-encoder-0.6.1/`. |
+
+What the move to 0.24 changed in the fork patches:
+
+- PhotoCraft 0.24 runs on the shared craft UI framework (`storytold/photocraft#15449`): its control
+  channel was desktop only. F1 builds it for the web again (through craft-automation's `control`
+  and `protocol` paths), with a copy of the two functions of craft-automation's `dialogs` that
+  PhotoCraft calls, because craft-automation builds that module for the desktop only. The follow-up
+  commit settles replies that wait on synthetic input, screenshots and jobs on the web too.
+- The start screen and About come from the framework: in host mode the Home rail has no footer
+  links, and About has no community button and no ArtCraft link (H9, now `credits::hosted_about`,
+  with a test).
+- PhotoCraft 0.24 stops its web build at the first frame: the per-frame upkeep reads
+  `std::time::Instant::now()`, which panics on `wasm32-unknown-unknown` ("time not implemented on
+  this platform"). The second follow-up commit runs that upkeep without the clock on the web (it
+  only drives the settings store and the autosave timer, which the web build has neither of).
+  This bug is upstream too (`release` and `main` on 2026-11-23).
+- On a lost GPU device, PhotoCraft 0.24 saves for recovery and closes its window behind a dialog
+  that refuses page commands (the web build cannot close the page). Chromium's headless software
+  WebGPU adapter loses its device at once, so the `open-save` end-to-end tests now run in a browser
+  without WebGPU: every window, also those the OS starts for a file, draws on WebGL 2.
+- craft-web-host has a new `attach-pdf` message: PhotoCraft logs it and ignores it.
+- craft-web-api and craft-web-host follow the craft-libs revision PhotoCraft pins (`5c5e0d52`).
+
 ## Progress
 
 - [x] Step 0: reading PhotoCraft 0.23.1, building and trying the web build.
@@ -309,3 +347,4 @@ what is done here is their model.
 - [x] Work item 2: window, bound opening and saving, tabs, exports as copies, close guard, pickers, shortcuts, theme, language, per-user settings, Latin fonts, measure of a large `.psd` (2026-11-13).
 - [x] Work item 3: Store listing, icon, screenshots, README, third-party notices, OS 3.3.4, journey in the published OS (2026-11-14).
 - [ ] Release: `photo/base` into `main` (Benoit), tag `v0.1.0`, catalog, `features.md`.
+- [x] Update to PhotoCraft 0.24.0-rc.1 (2026-11-23): fork `kazo/base-0.24.0-rc.1`, see "Upstream updates".

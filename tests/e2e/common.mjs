@@ -7,8 +7,17 @@ import { boot } from './host.mjs';
 export const START_TIMEOUT_MS = 120_000;
 
 // A software WebGPU adapter (SwiftShader), so both of PhotoCraft's renderers can be tried.
-export const launchBrowser = () => chromium.launch({
-    args: ['--enable-unsafe-webgpu', '--enable-features=Vulkan', '--use-vulkan=swiftshader', '--use-webgpu-adapter=swiftshader', '--use-angle=vulkan'],
+/**
+ * Chromium on SwiftShader. `webgpu: false` leaves WebGPU out, so every PhotoCraft window, also one
+ * the OS starts for a file (`xdg-open`, a new window for a taken name), draws on WebGL 2: the
+ * software WebGPU adapter loses its device right after the start, and PhotoCraft 0.24 then closes
+ * its window behind a recovery dialog that refuses page commands.
+ */
+export const launchBrowser = ({ webgpu = true } = {}) => chromium.launch({
+    args: [
+        ...(webgpu ? ['--enable-unsafe-webgpu', '--use-webgpu-adapter=swiftshader'] : []),
+        '--enable-features=Vulkan', '--use-vulkan=swiftshader', '--use-angle=vulkan',
+    ],
 });
 
 /** A fresh page with the OS booted; `errors` collects the page's uncaught errors. */

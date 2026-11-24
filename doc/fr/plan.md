@@ -303,6 +303,47 @@ Non vérifié : les issues déjà ouvertes en amont sur ces sujets (`storytold` 
 la session) ; Benoit regarde avant de publier. DesignCraft et VectorCraft ont le même manque : ce
 qui est fait ici leur sert de modèle.
 
+
+## Mises à jour de l'amont
+
+### 2026-11-23 : PhotoCraft 0.24.0-rc.1
+
+Benoit a choisi de suivre la branche amont `release`, avec l'étiquette officielle quand elle existe
+(fil « Mettre à jour les apps Craft », réponses 1B 2A 3A). L'étiquette `v0.24.0-rc.1` de PhotoCraft
+est le commit `181961ae` de `release`.
+
+| | |
+| --- | --- |
+| Fork | `kazo/v0.24.0-rc.1` = amont `181961ae` ; `kazo/base-0.24.0-rc.1` = ce commit plus F1 et F2 reportés, et deux commits de suite (tête `6a1fc53a`). `kazo/v0.23.1` et `kazo/base` restent tels quels. |
+| Sous-module | `external/photocraft` sur `kazo/base-0.24.0-rc.1` (`6a1fc53a`). |
+| Build | Rust 1.100.0 (le `rust-toolchain.toml` de PhotoCraft), Trunk 0.21.14, craft-i18n `e56d2624`. Le `.wasm` passe de 37,6 Mio à 72,8 Mio (PhotoCraft est passé au framework d'interface craft partagé), sous la limite de 128 Mio par fichier de Kazo OS. |
+| App | Version 0.2.0. Les mêmes 35 langues. Le NOTICE renvoie maintenant aux fichiers de licence de jpeg-encoder, livrés dans `wwwroot/legal/photocraft/jpeg-encoder-0.6.1/`. |
+
+Ce que le passage à 0.24 a changé dans les correctifs du fork :
+
+- PhotoCraft 0.24 tourne sur le framework d'interface craft partagé (`storytold/photocraft#15449`) :
+  son canal de contrôle n'existait plus que sur bureau. F1 le recompile pour le web (par les chemins
+  `control` et `protocol` de craft-automation), avec une copie des deux fonctions du module `dialogs`
+  de craft-automation qu'appelle PhotoCraft, car craft-automation ne compile ce module que sur
+  bureau. Le commit de suite règle aussi sur le web les réponses qui attendent une saisie
+  synthétique, une capture ou une tâche.
+- L'écran d'accueil et À propos viennent du framework : en mode hébergé, le rail d'accueil n'a pas
+  de liens de bas de page, et À propos n'a ni bouton communauté ni lien ArtCraft (H9, maintenant
+  `credits::hosted_about`, avec un test).
+- PhotoCraft 0.24 arrête son build web dès la première image : l'entretien de chaque image lit
+  `std::time::Instant::now()`, qui panique sur `wasm32-unknown-unknown` (« time not implemented on
+  this platform »). Le deuxième commit de suite fait cet entretien sans l'horloge sur le web (elle
+  ne sert qu'au magasin de réglages et au minuteur d'enregistrement automatique, que le build web
+  n'a pas). Ce bogue existe aussi en amont (`release` et `main` au 2026-11-23).
+- Quand le périphérique GPU est perdu, PhotoCraft 0.24 enregistre pour la récupération et ferme sa
+  fenêtre derrière une boîte de dialogue qui refuse les commandes de la page (le build web ne peut
+  pas fermer la page). L'adaptateur WebGPU logiciel de Chromium sans interface perd son
+  périphérique tout de suite : les tests de bout en bout `open-save` tournent donc dans un
+  navigateur sans WebGPU, et chaque fenêtre, aussi celles que l'OS ouvre pour un fichier, dessine
+  en WebGL 2.
+- craft-web-host a un nouveau message `attach-pdf` : PhotoCraft le journalise et l'ignore.
+- craft-web-api et craft-web-host suivent la révision de craft-libs que PhotoCraft épingle (`5c5e0d52`).
+
 ## Avancement
 
 - [x] Étape 0 : lecture de PhotoCraft 0.23.1, compilation et essai du build web.
@@ -313,3 +354,4 @@ qui est fait ici leur sert de modèle.
 - [x] Chantier 2 : fenêtre, ouverture et enregistrement liés, onglets, exports en copies, garde de fermeture, sélecteurs, raccourcis, thème, langue, réglages par utilisateur, polices latines, mesure d'un grand `.psd` (2026-11-13).
 - [x] Chantier 3 : fiche du Store, icône, captures, README, avis de tiers, OS 3.3.4, parcours dans l'OS publié (2026-11-14).
 - [ ] Sortie : `photo/base` dans `main` (Benoit), étiquette `v0.1.0`, catalogue, `features.md`.
+- [x] Mise à jour vers PhotoCraft 0.24.0-rc.1 (2026-11-23) : fork `kazo/base-0.24.0-rc.1`, voir « Mises à jour de l'amont ».

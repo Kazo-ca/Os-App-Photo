@@ -51,6 +51,7 @@ public sealed class LegalFilesTests
     [InlineData("LICENSE-solarized.txt")]
     [InlineData("LICENSE-SCOWL.txt")]
     [InlineData("LICENSE-libfacedetection.txt")]
+    [InlineData("jpeg-encoder-0.6.1/LICENSE-APACHE")]
     public void The_license_files_PhotoCraft_refers_to_ship_in_the_package(string file)
     {
         // PhotoCraft's web build names these files in its NOTICE and ATTRIBUTION.md but does not
