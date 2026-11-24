@@ -12,7 +12,7 @@ public static class PhotoCraftBuild
     /// <c>wwwroot/photocraft/photocraft.json</c> by a test, so the window can show it without
     /// reading the file at run time.
     /// </summary>
-    public const string Version = "0.23.1";
+    public const string Version = "0.24.0-rc.1";
 
     /// <summary>Folder of the build under the app's static files (<c>_content/Kazo.Photo/</c>).</summary>
     public const string Folder = "photocraft";

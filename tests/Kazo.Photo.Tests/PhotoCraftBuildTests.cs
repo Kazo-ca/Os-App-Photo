@@ -44,7 +44,7 @@ public sealed partial class PhotoCraftBuildTests
     [Fact]
     public void The_wasm_stays_under_the_Kazo_OS_file_size_limit()
     {
-        // ADR 0245 of Kazo OS: 128 MiB per file. PhotoCraft 0.23.1 is about 37.6 MiB.
+        // ADR 0245 of Kazo OS: 128 MiB per file. PhotoCraft 0.24.0-rc.1 is about 72.8 MiB (0.23.1: 37.6 MiB).
         const long maximumFileBytes = 128L * 1024 * 1024;
         FileInfo wasm = new(Path.Combine(BuildFolder, Provenance.GetProperty("wasm").GetString()!));
         Assert.InRange(wasm.Length, 1, maximumFileBytes);

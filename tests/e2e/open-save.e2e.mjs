@@ -5,8 +5,9 @@
 // PhotoCraft is driven through its page API (window.photocraft in the iframe) to create an image
 // and run its menu items, as its menus and shortcuts do; everything else goes through the OS: its
 // save and open dialogs, its message box, the window's title bar and close button, and the
-// Terminal (`xdg-open` starts the app associated with the file type). PhotoCraft starts with
-// --webgl: Chromium's software WebGPU adapter loses its device in headless runs (photo.e2e.mjs).
+// Terminal (`xdg-open` starts the app associated with the file type). The browser has no WebGPU,
+// so every window, also those the OS starts for a file, draws on WebGL 2: Chromium's software
+// WebGPU adapter loses its device in headless runs (photo.e2e.mjs, common.mjs `launchBrowser`).
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { runInTerminal, startHost } from './host.mjs';
@@ -23,7 +24,7 @@ let browser;
 
 before(async () => {
     host = await startHost();
-    browser = await launchBrowser();
+    browser = await launchBrowser({ webgpu: false });
 });
 
 after(async () => {

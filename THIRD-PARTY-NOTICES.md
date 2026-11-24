@@ -15,7 +15,7 @@ set of **fonts** under the SIL Open Font License.
 | | |
 | --- | --- |
 | Work | [PhotoCraft](https://github.com/storytold/photocraft), an image editor written in Rust, by the ArtCraft team and the PhotoCraft contributors |
-| Version | 0.23.1, compiled from our fork [`Kazo-ca/photocraft`](https://github.com/Kazo-ca/photocraft) (branch `kazo/base`, commit `16ae9d59ecbaf987a26427b66edff708463b5c1f`: the upstream tag `v0.23.1` on branch `kazo/v0.23.1`, plus the changes below) |
+| Version | 0.24.0-rc.1, compiled from our fork [`Kazo-ca/photocraft`](https://github.com/Kazo-ca/photocraft) (branch `kazo/base-0.24.0-rc.1`, commit `6a1fc53a851455a6798d7cfd1d9a561e1d361763`: the upstream tag `v0.24.0-rc.1` on branch `kazo/v0.24.0-rc.1`, plus the changes below) |
 | License | MIT or Apache-2.0, at the user's option |
 | Files | `src/Kazo.Photo/wwwroot/photocraft/` (the web build: `.js`, `.wasm`, `snippets/`) |
 | Provenance | `src/Kazo.Photo/wwwroot/photocraft/photocraft.json`: the fork's commit, the compilers, and the SHA-256 of every file |
@@ -23,9 +23,10 @@ set of **fonts** under the SIL Open Font License.
 **Changes made in the fork** (MIT or Apache-2.0, like PhotoCraft, so they can be offered upstream):
 the web build gains `window.photocraft`, a control interface installed with `?control`
 (Kazo-ca/photocraft#1), and a host mode for a page that embeds it (`craft-web-host`,
-Kazo-ca/photocraft#2): the host hands it files, it asks the host to save the document and waits for
-the answer, and in that mode it shows no ArtCraft link. Outside a host page PhotoCraft behaves as
-upstream.
+Kazo-ca/photocraft#2), both carried onto 0.24.0-rc.1: the host hands it files, it asks the host to save the document and waits for
+the answer, and in that mode it shows no ArtCraft link. Its web build also runs the per-frame
+upkeep without `std::time`, which is not implemented in the browser. Outside a host page PhotoCraft
+behaves as upstream.
 
 PhotoCraft's own notices ship **unmodified** next to its build, and in the installed package
 (`_content/Kazo.Photo/photocraft/`):
@@ -41,7 +42,7 @@ PhotoCraft's own notices ship **unmodified** next to its build, and in the insta
 
 PhotoCraft's `NOTICE` and `ATTRIBUTION.md` name license files of its source repository that its
 web build does not carry. Kazo Photo ships them, copied unmodified from the fork at the bundled
-commit (`16ae9d59ecbaf987a26427b66edff708463b5c1f`), in `src/Kazo.Photo/wwwroot/legal/photocraft/`:
+commit (`6a1fc53a851455a6798d7cfd1d9a561e1d361763`), in `src/Kazo.Photo/wwwroot/legal/photocraft/`:
 
 | File | Source in PhotoCraft | Covers |
 | --- | --- | --- |
@@ -52,6 +53,7 @@ commit (`16ae9d59ecbaf987a26427b66edff708463b5c1f`), in `src/Kazo.Photo/wwwroot/
 | `LICENSE-solarized.txt` | `crates/ui-egui/src/` | The Solarized palette of the Solarized Dark theme (MIT) |
 | `LICENSE-SCOWL.txt` | `assets/dict/` | The SCOWL English word list (SCOWL license) |
 | `LICENSE-libfacedetection.txt` | `crates/algo/data/` | The libfacedetection weights and network (BSD-3-Clause) |
+| `jpeg-encoder-0.6.1/LICENSE-APACHE` (with `LICENSE-MIT`, `IJG-NOTICE.txt`, `SIMD-NOTICE.txt`, `SOURCE.json`) | `licenses/jpeg-encoder-0.6.1/` | The jpeg-encoder crate PhotoCraft uses for JPEG files ((MIT or Apache-2.0) and IJG): the Apache-2.0 text its NOTICE points to |
 
 ### The ArtCraft brand
 
